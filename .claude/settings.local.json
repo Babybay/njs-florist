@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm *)",
+      "Bash(Get-Location *)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-eslint --use-npm --yes)",
+      "Bash(npx create-next-app@latest --help)",
+      "Bash(npx create-next-app@latest njs-florist-tmp --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-eslint --use-npm --yes)",
+      "Bash(cp package.json ../)",
+      "Bash(cp package-lock.json ../)",
+      "Bash(cp next.config.ts ../)",
+      "Bash(cp tsconfig.json ../)",
+      "Bash(cp next-env.d.ts ../)",
+      "Bash(cp -r \"D:/THE PROJECT/njs florist/njs-florist-tmp/src\" \"D:/THE PROJECT/njs florist/\")",
+      "Bash(cp -r \"D:/THE PROJECT/njs florist/njs-florist-tmp/public\" \"D:/THE PROJECT/njs florist/\")",
+      "Bash(cp -r \"D:/THE PROJECT/njs florist/njs-florist-tmp/node_modules\" \"D:/THE PROJECT/njs florist/\")",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
