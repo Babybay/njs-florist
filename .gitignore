@@ -33,9 +33,18 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.local.example
+!.env.example
 
 # vercel
 .vercel
+
+# claude code / planning artifacts
+.claude/
+CLAUDE.md
+*.plan.md
+PLAN*.md
+PLANNING*.md
+florist_website_architecture_full_specs.md
 
 # typescript
 *.tsbuildinfo

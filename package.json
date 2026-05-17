@@ -5,12 +5,25 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "postinstall": "prisma generate --schema src/prisma/schema.prisma",
+    "db:generate": "prisma generate --schema src/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema src/prisma/schema.prisma",
+    "db:seed": "prisma db seed --schema src/prisma/schema.prisma"
+  },
+  "prisma": {
+    "seed": "tsx src/prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
+    "motion": "^12.38.0",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "resend": "^6.12.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -19,7 +32,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
+    "prisma": "^6.19.3",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

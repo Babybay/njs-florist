@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# njs Florist
 
-## Getting Started
+Storefront, checkout, and admin workspace for **njs Florist Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
 
-First, run the development server:
+---
+
+## Local development
 
 ```bash
+# 1. Install dependencies (also runs `prisma generate`)
+npm install
+
+# 2. Copy env template and fill it in
+cp .env.example .env.local
+
+# 3. Apply database migrations
+npm run db:migrate
+
+# 4. (Optional) seed sample data
+npm run db:seed
+
+# 5. Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Useful scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script              | What it does                                |
+| ------------------- | ------------------------------------------- |
+| `npm run dev`       | Start Next.js dev server                    |
+| `npm run build`     | Production build                            |
+| `npm run start`     | Serve the production build                  |
+| `npm run db:migrate`| Run Prisma migrations (dev)                 |
+| `npm run db:studio` | Open Prisma Studio                          |
+| `npm run db:seed`   | Seed sample data                            |
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy to Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This repo is preconfigured to deploy on Vercel out of the box.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1 — Import the project
 
-## Deploy on Vercel
+1. Push the repo to GitHub / GitLab / Bitbucket.
+2. In the [Vercel dashboard](https://vercel.com/new), **Add New → Project** and import the repo.
+3. Framework preset: **Next.js** (auto-detected).
+4. Build & install commands: **leave as default** — `npm install` runs `postinstall` (`prisma generate`) and `next build` is run as the build step.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 2 — Set environment variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Copy every key from [`.env.example`](./.env.example) into **Project Settings → Environment Variables** for the **Production**, **Preview**, and **Development** scopes as appropriate. At minimum, the build needs:
+
+- `DATABASE_URL` — pooled Postgres URL (e.g. Supabase `:6543` with `?pgbouncer=true`)
+- `DIRECT_URL` — direct Postgres URL for migrations
+- `NEXT_PUBLIC_APP_URL` — public origin of the deployed site (`https://your-domain.com`)
+
+All other keys (Cloudinary, Resend, Midtrans, WhatsApp, Clerk, Supabase, Sentry, etc.) are optional — the app degrades gracefully when they're absent, but the related features are off.
+
+### 3 — Region
+
+[`vercel.json`](./vercel.json) pins Serverless Functions to **`sin1` (Singapore)** — the lowest-latency region for Bali / Indonesian traffic. Override in the dashboard if you need somewhere else.
+
+### 4 — Database migrations
+
+Vercel doesn't run `prisma migrate deploy` automatically. Run migrations from your local machine (or CI) against the production database before each release:
+
+```bash
+DATABASE_URL="<prod direct url>" npx prisma migrate deploy --schema src/prisma/schema.prisma
+```
+
+### 5 — Domain & assets
+
+- Add your custom domain in **Project Settings → Domains** and update `NEXT_PUBLIC_APP_URL` to match.
+- The logo lives at `public/logo.png` and is reused for the site header, admin shell, and app icons (`src/app/icon.png`, `src/app/apple-icon.png`).
+- Remote image hosts are whitelisted in [`next.config.ts`](./next.config.ts) (`res.cloudinary.com`, `images.unsplash.com`, `*.supabase.co`). Add more there if you switch CDNs.
+
+---
+
+## Project structure
+
+```
+src/
+  app/                 # Next.js App Router (storefront, admin, staff, auth)
+    (store)/           # Public storefront routes
+    admin/             # /admin workspace
+    staff/             # Florist & delivery staff dashboards
+    api/               # Route handlers (webhooks, cron, etc.)
+  components/          # UI components, grouped by domain
+  lib/                 # Cross-cutting helpers (auth, db, env, money, …)
+  prisma/              # Schema, migrations, seed
+  server/              # Services, server actions
+public/                # Static assets (logo, favicons, etc.)
+```
+
+---
+
+## Conventions
+
+- This is **Next.js 16** — APIs and conventions may differ from older versions. When in doubt, check `node_modules/next/dist/docs/`.
+- Environment variables are validated by Zod in [`src/lib/env.ts`](./src/lib/env.ts) — add a key there before using it.
+- Prisma client target is `["native", "rhel-openssl-3.0.x"]` so the same binary works locally and on Vercel's Amazon Linux runtime.
