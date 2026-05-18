@@ -38,12 +38,12 @@ export default async function AdminOrderDetailPage({
         description="Detail pesanan lengkap dengan riwayat status dan kontrol admin."
       />
 
-      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+      <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
         <OrderStatusBadge status={order.status} />
         <span className="text-stone-500">
           Dibuat {formatDateTime(order.createdAt)}
         </span>
-        <span className="text-stone-300">·</span>
+        <span className="hidden text-stone-300 sm:inline">·</span>
         {order.user ? (
           <Link
             href={`/admin/users#${order.user.id}`}
@@ -57,13 +57,14 @@ export default async function AdminOrderDetailPage({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <div className="grid gap-4">
+        <div className="order-2 grid gap-4 lg:order-none">
           <CardSection title="Item">
             <ul className="grid gap-2 text-sm">
               {order.items.map((item) => (
                 <li key={item.id} className="rounded-md border border-stone-200 bg-stone-50/40 p-3">
                   <p className="font-medium text-stone-900">
-                    {item.quantity}× {item.productName} <span className="text-stone-500">— {item.variantName}</span>
+                    {item.quantity}× {item.productName}{" "}
+                    <span className="text-stone-500">— {item.variantName}</span>
                   </p>
                   <p className="mt-0.5 text-xs text-stone-600">
                     {item.quantity} × {formatIDR(item.unitPrice)} = {formatIDR(item.totalPrice)}
@@ -81,15 +82,25 @@ export default async function AdminOrderDetailPage({
               ))}
             </ul>
             <div className="mt-4 grid gap-1.5 border-t border-stone-200/80 pt-3 text-sm text-stone-700">
-              <div className="flex justify-between"><span className="text-stone-500">Subtotal</span><span>{formatIDR(order.subtotal)}</span></div>
+              <div className="flex justify-between">
+                <span className="text-stone-500">Subtotal</span>
+                <span>{formatIDR(order.subtotal)}</span>
+              </div>
               {order.deliveryFee > 0 ? (
-                <div className="flex justify-between"><span className="text-stone-500">Biaya layanan</span><span>{formatIDR(order.deliveryFee)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Biaya layanan</span>
+                  <span>{formatIDR(order.deliveryFee)}</span>
+                </div>
               ) : null}
               {order.discountAmount > 0 ? (
-                <div className="flex justify-between"><span className="text-stone-500">Diskon</span><span>-{formatIDR(order.discountAmount)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-stone-500">Diskon</span>
+                  <span>-{formatIDR(order.discountAmount)}</span>
+                </div>
               ) : null}
               <div className="flex justify-between border-t border-stone-200/80 pt-2 text-base font-semibold text-stone-900">
-                <span>Total</span><span>{formatIDR(order.total)}</span>
+                <span>Total</span>
+                <span>{formatIDR(order.total)}</span>
               </div>
             </div>
           </CardSection>
@@ -116,9 +127,13 @@ export default async function AdminOrderDetailPage({
                       <span className={tagClass(payment.status === "PAID" ? "emerald" : payment.status === "FAILED" ? "rose" : "amber")}>
                         {payment.status}
                       </span>
-                      <span className="ml-auto text-sm font-medium text-stone-900">{formatIDR(payment.amount)}</span>
+                      <span className="ml-auto text-sm font-medium text-stone-900">
+                        {formatIDR(payment.amount)}
+                      </span>
                     </div>
-                    <p className="mt-1 font-mono text-xs text-stone-500">{payment.providerOrderId}</p>
+                    <p className="mt-1 break-all font-mono text-xs text-stone-500">
+                      {payment.providerOrderId}
+                    </p>
                     <p className="mt-1 text-xs text-stone-500">
                       Dibuat {formatDateTime(payment.createdAt)}
                       {payment.paidAt ? ` · Lunas ${formatDateTime(payment.paidAt)}` : ""}
@@ -130,7 +145,7 @@ export default async function AdminOrderDetailPage({
           ) : null}
         </div>
 
-        <div className="grid gap-4">
+        <div className="order-1 grid gap-4 lg:order-none">
           <CardSection title="Kontrol admin">
             <OrderStatusControls
               orderId={order.id}
@@ -138,7 +153,10 @@ export default async function AdminOrderDetailPage({
             />
           </CardSection>
 
-          <CardSection title="Sinkronisasi Midtrans" description="Tarik status terbaru langsung dari API Midtrans (fallback kalau webhook tidak masuk).">
+          <CardSection
+            title="Sinkronisasi Midtrans"
+            description="Tarik status terbaru langsung dari API Midtrans (fallback kalau webhook tidak masuk)."
+          >
             <RefreshPaymentButton orderNumber={order.orderNumber} />
           </CardSection>
 
@@ -147,7 +165,8 @@ export default async function AdminOrderDetailPage({
               <div>
                 <dt className="text-xs text-stone-500">Pengambil</dt>
                 <dd className="mt-0.5 font-medium text-stone-900">
-                  {order.recipientName} <span className="text-stone-500">({order.recipientPhone})</span>
+                  {order.recipientName}{" "}
+                  <span className="text-stone-500">({order.recipientPhone})</span>
                 </dd>
               </div>
               <div>
@@ -175,7 +194,10 @@ export default async function AdminOrderDetailPage({
             <CardSection title="Reservasi stok">
               <ul className="grid gap-1.5 text-xs">
                 {order.reservations.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between rounded-md border border-stone-200 bg-stone-50/40 px-2.5 py-2">
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-stone-200 bg-stone-50/40 px-2.5 py-2"
+                  >
                     <span className="text-stone-800">
                       {r.inventoryItem.name} × {r.quantity} {r.inventoryItem.unit}
                     </span>

@@ -64,16 +64,16 @@ export function OrderStatusControls({
         value={note}
         onChange={(e) => setNote(e.target.value)}
         placeholder="Catatan (opsional, akan tercatat di history)"
-        className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500"
+        className="w-full rounded-md border border-stone-300 px-3 py-2.5 text-sm outline-none focus:border-rose-500"
       />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         {nextSteps.map((step) => (
           <button
             key={step.to}
             type="button"
             disabled={pending}
             onClick={() => go(step.to)}
-            className="rounded-full bg-rose-900 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-800 disabled:bg-stone-400"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-rose-900 px-4 text-sm font-semibold text-white transition hover:bg-rose-800 disabled:bg-stone-400 sm:w-auto sm:text-xs"
           >
             {pending ? "..." : step.label}
           </button>
@@ -83,7 +83,7 @@ export function OrderStatusControls({
             type="button"
             disabled={pending}
             onClick={() => go("CANCELLED", "Yakin batalkan pesanan ini?")}
-            className="rounded-full border border-rose-300 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-rose-300 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:w-auto sm:text-xs"
           >
             Batalkan
           </button>
@@ -93,7 +93,7 @@ export function OrderStatusControls({
             type="button"
             disabled={pending}
             onClick={() => go("REFUNDED", "Tandai pesanan sebagai REFUNDED? Pastikan refund sudah diproses di Midtrans.")}
-            className="rounded-full border border-amber-300 px-4 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-amber-300 px-4 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 disabled:opacity-50 sm:w-auto sm:text-xs"
           >
             Tandai refund
           </button>
