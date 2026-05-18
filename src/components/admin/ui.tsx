@@ -129,7 +129,14 @@ export function labelClass(extra = "") {
 }
 
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-stone-200/70 ${className}`} />;
+  return (
+    <div
+      aria-hidden="true"
+      className={`relative overflow-hidden rounded-md bg-stone-200/70 ${className}`}
+    >
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/55 to-transparent" />
+    </div>
+  );
 }
 
 export function StatSkeleton({ tone = "default" }: { tone?: "default" | "warning" }) {
