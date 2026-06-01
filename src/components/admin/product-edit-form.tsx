@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import {
   type AdminFormState,
   updateProductAction,
 } from "@/server/actions/product.actions";
+import { useAdminFormMemory } from "@/components/admin/use-admin-form-memory";
 
 type Product = {
   id: string;
@@ -27,10 +28,31 @@ export function ProductEditForm({
   categories: Array<{ id: string; name: string }>;
 }) {
   const [state, formAction, pending] = useActionState(updateProductAction, initialState);
+  const { formRef, hasMemory, saveMemory, clearMemory } = useAdminFormMemory(`admin-form:product:${product.id}`);
+
+  useEffect(() => {
+    if (state.ok) clearMemory();
+  }, [clearMemory, state.ok]);
 
   return (
-    <form action={formAction} className="grid gap-5 rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+    <form
+      ref={formRef}
+      action={formAction}
+      onInput={saveMemory}
+      onChange={saveMemory}
+      onSubmit={saveMemory}
+      className="grid gap-5 rounded-lg border border-stone-200 bg-white p-6 shadow-sm"
+    >
       <input type="hidden" name="id" value={product.id} />
+      {hasMemory ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <span>Draft edit sebelumnya dipulihkan. Perbaiki field yang error tanpa mengulang dari awal.</span>
+          <button type="button" onClick={clearMemory} className="font-semibold hover:underline">
+            Buang draft
+          </button>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm font-semibold text-stone-800">
           Nama

@@ -72,3 +72,17 @@ export async function setSetting(input: unknown) {
     update: { value },
   });
 }
+
+export async function setSettings(inputs: unknown[]) {
+  const parsed = z.array(updateSchema).parse(inputs);
+
+  return db.$transaction(
+    parsed.map(({ key, value }) =>
+      db.appSetting.upsert({
+        where: { key },
+        create: { key, value },
+        update: { value },
+      }),
+    ),
+  );
+}

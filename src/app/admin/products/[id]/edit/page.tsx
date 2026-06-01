@@ -2,10 +2,12 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/components/admin/admin-shell";
 import { CloudinaryUpload } from "@/components/admin/cloudinary-upload";
+import { ProductActivityHistory } from "@/components/admin/product-activity-history";
 import { ProductEditForm } from "@/components/admin/product-edit-form";
 import { VariantCreateForm } from "@/components/admin/variant-create-form";
 import { formatIDR } from "@/lib/money";
 import { db } from "@/lib/db";
+import { listProductActivity } from "@/server/services/activity-log.service";
 import { getProductAdminView } from "@/server/services/product.service";
 import { listCategories, listInventoryItems } from "@/server/services/catalog.service";
 import {
@@ -29,11 +31,12 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [product, categories, inventoryItems, allAddons] = await Promise.all([
+  const [product, categories, inventoryItems, allAddons, activityLogs] = await Promise.all([
     getProductAdminView(id),
     listCategories(),
     listInventoryItems(),
     db.addon.findMany({ orderBy: { name: "asc" } }),
+    listProductActivity(id),
   ]);
   if (!product) notFound();
 
@@ -268,6 +271,8 @@ export default async function EditProductPage({
             })}
           </div>
         </section>
+
+        <ProductActivityHistory logs={activityLogs} />
       </div>
     </>
   );

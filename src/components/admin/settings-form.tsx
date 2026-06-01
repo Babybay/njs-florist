@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateSettingsAction } from "@/server/actions/settings.actions";
 import { Button, inputClass } from "@/components/admin/ui";
+import { useAdminFormMemory } from "@/components/admin/use-admin-form-memory";
 
 type SettingsFormProps = {
   settings: Record<string, string>;
@@ -12,6 +13,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { formRef, hasMemory, saveMemory, clearMemory } = useAdminFormMemory("admin-form:settings");
 
   function submit(formData: FormData) {
     setError(null);
@@ -19,6 +21,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
     startTransition(async () => {
       try {
         await updateSettingsAction(formData);
+        clearMemory();
         setMessage("Tersimpan.");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Gagal menyimpan.");
@@ -27,7 +30,23 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   }
 
   return (
-    <form action={submit} className="grid gap-5 rounded-lg border border-stone-200/80 bg-white p-5">
+    <form
+      ref={formRef}
+      action={submit}
+      onInput={saveMemory}
+      onChange={saveMemory}
+      onSubmit={saveMemory}
+      className="grid gap-5 rounded-lg border border-stone-200/80 bg-white p-5"
+    >
+      {hasMemory ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <span>Draft edit sebelumnya dipulihkan. Perbaiki bagian yang salah lalu simpan lagi.</span>
+          <button type="button" onClick={clearMemory} className="font-semibold hover:underline">
+            Buang draft
+          </button>
+        </div>
+      ) : null}
+
       <Section title="Pickup">
         <Field
           label="Alamat pickup (ditampilkan ke customer)"

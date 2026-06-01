@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/services/auth.service";
-import { setSetting, SETTING_KEYS } from "@/server/services/settings.service";
+import { setSettings, SETTING_KEYS } from "@/server/services/settings.service";
 
 const ALLOWED_HOMEPAGE_KEYS = new Set<string>([
   SETTING_KEYS.HOME_HERO_IMAGE,
@@ -18,10 +18,13 @@ const ALLOWED_HOMEPAGE_KEYS = new Set<string>([
 export async function updateHomepageSlotAction(payload: Record<string, string>) {
   await requireAdmin();
 
+  const updates: Array<{ key: string; value: string }> = [];
   for (const [key, raw] of Object.entries(payload)) {
     if (!ALLOWED_HOMEPAGE_KEYS.has(key)) continue;
-    await setSetting({ key, value: String(raw ?? "").trim() });
+    updates.push({ key, value: String(raw ?? "").trim() });
   }
+
+  if (updates.length > 0) await setSettings(updates);
 
   revalidatePath("/");
   revalidatePath("/admin/homepage");

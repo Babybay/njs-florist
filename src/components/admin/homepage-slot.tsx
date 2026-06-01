@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { updateHomepageSlotAction } from "@/server/actions/homepage.actions";
 
 type SignatureResponse = {
@@ -72,6 +72,9 @@ export function HomepageSlot({
   const [drafts, setDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(fields.map((f) => [f.key, f.value])),
   );
+  const [memoryReady, setMemoryReady] = useState(false);
+  const [hasMemory, setHasMemory] = useState(false);
+  const memoryKey = `admin-form:homepage:${imageKey}`;
 
   const aspectClass =
     aspect === "portrait" ? "aspect-[3/4]" : aspect === "landscape" ? "aspect-[16/9]" : "aspect-square";
@@ -102,6 +105,8 @@ export function HomepageSlot({
         const payload: Record<string, string> = { [imageKey]: draftUrl };
         for (const f of fields) payload[f.key] = drafts[f.key] ?? "";
         await updateHomepageSlotAction(payload);
+        window.localStorage.removeItem(memoryKey);
+        setHasMemory(false);
         setMessage("Tersimpan & landing page direvalidasi.");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Gagal menyimpan.");
@@ -112,6 +117,39 @@ export function HomepageSlot({
   const dirty =
     draftUrl !== imageValue ||
     fields.some((f) => (drafts[f.key] ?? "") !== f.value);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(memoryKey);
+    if (!raw) {
+      setMemoryReady(true);
+      return;
+    }
+
+    try {
+      const saved = JSON.parse(raw) as { imageUrl?: string; fields?: Record<string, string> };
+      if (typeof saved.imageUrl === "string") setDraftUrl(saved.imageUrl);
+      if (saved.fields) {
+        setDrafts((current) => ({ ...current, ...saved.fields }));
+      }
+      setHasMemory(true);
+      setMessage("Draft edit sebelumnya dipulihkan.");
+    } catch {
+      window.localStorage.removeItem(memoryKey);
+    } finally {
+      setMemoryReady(true);
+    }
+  }, [memoryKey]);
+
+  useEffect(() => {
+    if (!memoryReady) return;
+    if (!dirty) {
+      window.localStorage.removeItem(memoryKey);
+      if (hasMemory) setHasMemory(false);
+      return;
+    }
+    window.localStorage.setItem(memoryKey, JSON.stringify({ imageUrl: draftUrl, fields: drafts }));
+    setHasMemory(true);
+  }, [dirty, draftUrl, drafts, hasMemory, memoryKey, memoryReady]);
 
   return (
     <section className="overflow-hidden rounded-lg border border-stone-200/80 bg-white">
@@ -208,6 +246,22 @@ export function HomepageSlot({
             </button>
             {message ? <p className="text-xs font-medium text-emerald-700">{message}</p> : null}
             {error ? <p className="text-xs font-medium text-rose-700">{error}</p> : null}
+            {hasMemory ? (
+              <button
+                type="button"
+                onClick={() => {
+                  window.localStorage.removeItem(memoryKey);
+                  setHasMemory(false);
+                  setDraftUrl(imageValue);
+                  setDrafts(Object.fromEntries(fields.map((f) => [f.key, f.value])));
+                  setMessage(null);
+                  setError(null);
+                }}
+                className="text-xs font-medium text-stone-500 hover:text-stone-900"
+              >
+                Buang draft
+              </button>
+            ) : null}
             {dirty && !pending && !message && !error ? (
               <p className="text-xs text-stone-500">Ada perubahan belum disimpan.</p>
             ) : null}
