@@ -36,6 +36,14 @@ export default async function AdminOrderDetailPage({
         title={order.orderNumber}
         icon="🧾"
         description="Detail pesanan lengkap dengan riwayat status dan kontrol admin."
+        action={
+          <Link
+            href={`/admin/invoices/${order.orderNumber}`}
+            className="inline-flex items-center justify-center rounded-md border border-stone-200 bg-white px-3 py-1.5 text-sm font-medium text-stone-800 transition hover:bg-stone-100"
+          >
+            Buka invoice
+          </Link>
+        }
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">

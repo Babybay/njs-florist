@@ -23,6 +23,7 @@ const sections: NavSection[] = [
     title: "Penjualan",
     items: [
       { href: "/admin/orders", label: "Pesanan", icon: "🧾" },
+      { href: "/admin/invoices", label: "Invoice", icon: "📄" },
       { href: "/admin/delivery", label: "Slot pickup", icon: "📅" },
       { href: "/admin/payments", label: "Pembayaran", icon: "💳" },
       { href: "/admin/discounts", label: "Diskon", icon: "🏷️" },

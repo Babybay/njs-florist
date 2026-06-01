@@ -59,6 +59,7 @@ export default function AdminDashboardPage() {
               { href: "/admin/products/new", icon: "🌸", label: "Tambah produk baru" },
               { href: "/admin/categories", icon: "🏷️", label: "Kelola kategori" },
               { href: "/admin/addons", icon: "🎁", label: "Kelola add-on" },
+              { href: "/admin/invoices", icon: "📄", label: "Lihat invoice" },
               { href: "/admin/delivery", icon: "📅", label: "Atur slot pickup" },
               { href: "/admin/discounts", icon: "💸", label: "Bikin kode diskon" },
               { href: "/admin/settings", icon: "⚙️", label: "Pengaturan toko" },

@@ -226,3 +226,29 @@ img {
   font-feature-settings: "lnum" 1, "kern" 1;
   letter-spacing: -0.01em;
 }
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  body:has(.invoice-page) aside,
+  .admin-print-hidden {
+    display: none !important;
+  }
+
+  main:has(.invoice-page) {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main:has(.invoice-page) > div {
+    max-width: none !important;
+  }
+
+  .invoice-document {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
