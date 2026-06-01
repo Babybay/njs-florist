@@ -228,6 +228,11 @@ img {
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
   body {
     background: #ffffff;
   }
@@ -246,9 +251,35 @@ img {
     max-width: none !important;
   }
 
+  .invoice-page {
+    max-width: none !important;
+  }
+
   .invoice-document {
     border: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+    padding: 0 !important;
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .invoice-document h2 {
+    font-size: 22px !important;
+  }
+
+  .invoice-document table {
+    font-size: 10px !important;
+  }
+
+  .invoice-document th,
+  .invoice-document td {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+
+  .invoice-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
