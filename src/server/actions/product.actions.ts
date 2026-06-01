@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { ZodError } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/server/services/auth.service";
 import { logActivity } from "@/server/services/activity-log.service";
@@ -26,6 +27,7 @@ function invalidateCatalog() {
 export type AdminFormState = {
   error?: string;
   ok?: boolean;
+  redirectTo?: string;
 };
 
 const initialState: AdminFormState = {};
@@ -43,6 +45,20 @@ function bool(value: FormDataEntryValue | null) {
 function trimOrUndefined(value: FormDataEntryValue | null) {
   const trimmed = String(value ?? "").trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function formErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ZodError) {
+    return error.issues
+      .map((issue) => {
+        const field = issue.path.length ? issue.path.join(".") : "Form";
+        return `${field}: ${issue.message}`;
+      })
+      .join(" ");
+  }
+
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 const PRODUCT_AUDIT_FIELDS = [
@@ -122,10 +138,11 @@ export async function createProductAction(
 
     invalidateCatalog();
     revalidatePath("/admin/products");
-    redirect(`/admin/products/${product.id}/edit`);
+    revalidatePath(`/admin/products/${product.id}/edit`);
+    return { ok: true, redirectTo: `/admin/products/${product.id}/edit` };
   } catch (error) {
     if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) throw error;
-    return { error: error instanceof Error ? error.message : "Gagal membuat produk." };
+    return { error: formErrorMessage(error, "Gagal membuat produk.") };
   }
 
   return initialState;
@@ -185,7 +202,7 @@ export async function updateProductAction(
     revalidatePath("/admin/products");
     return { ok: true };
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Gagal memperbarui produk." };
+    return { error: formErrorMessage(error, "Gagal memperbarui produk.") };
   }
 }
 
