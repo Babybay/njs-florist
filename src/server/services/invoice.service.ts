@@ -99,7 +99,21 @@ export async function getInvoice(orderNumber: string) {
     db.order.findUnique({
       where: { orderNumber },
       include: {
-        items: { include: { addons: true } },
+        items: {
+          include: {
+            addons: true,
+            variant: {
+              include: {
+                product: {
+                  include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+                },
+                recipes: {
+                  include: { inventoryItem: { select: { name: true, unit: true } } },
+                },
+              },
+            },
+          },
+        },
         payments: { orderBy: { createdAt: "desc" } },
         user: { select: { email: true, name: true, phone: true } },
       },
@@ -110,6 +124,28 @@ export async function getInvoice(orderNumber: string) {
 
   const paidAmount = paidTotal(order.payments);
 
+  // Aggregate raw-material (inventory) consumption across the whole order.
+  // Per line: recipe.quantityNeeded × item.quantity, summed per inventory item.
+  const materialsMap = new Map<string, { name: string; unit: string; quantity: number }>();
+  for (const item of order.items) {
+    for (const recipe of item.variant.recipes) {
+      const used = recipe.quantityNeeded * item.quantity;
+      const existing = materialsMap.get(recipe.inventoryItemId);
+      if (existing) {
+        existing.quantity += used;
+      } else {
+        materialsMap.set(recipe.inventoryItemId, {
+          name: recipe.inventoryItem.name,
+          unit: recipe.inventoryItem.unit,
+          quantity: used,
+        });
+      }
+    }
+  }
+  const materials = Array.from(materialsMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+
   return {
     order,
     settings,
@@ -117,5 +153,6 @@ export async function getInvoice(orderNumber: string) {
     status: resolveInvoiceStatus(order),
     paidAmount,
     balanceDue: Math.max(order.total - paidAmount, 0),
+    materials,
   };
 }

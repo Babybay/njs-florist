@@ -7,7 +7,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
 
   return (
     <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-stone-950">Revenue 30 hari terakhir</h2>
+      <h2 className="text-lg font-semibold text-stone-950">Revenue {data.length} hari terakhir</h2>
       <p className="mt-1 text-sm text-stone-600">
         Total {data.reduce((a, p) => a + p.orders, 0)} pesanan ·{" "}
         {formatIDR(data.reduce((a, p) => a + p.revenue, 0))}

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { addMinutes, generateOrderNumber } from "@/lib/utils";
+import { addMinutes, formatOrderNumber, witaDayRange } from "@/lib/utils";
 import { checkoutInputSchema } from "@/server/validations/checkout.validation";
 import { calculateCartPricing } from "@/server/services/pricing.service";
 import { createPaymentForOrder } from "@/server/services/payment.service";
@@ -43,9 +43,16 @@ export async function createCheckoutOrder(input: unknown) {
   // Atomic write block: order, items, reservations, discount usage.
   const order = await db.$transaction(
     async (tx) => {
+      // Daily-reset sequence: count orders already placed today (WITA), +1.
+      const { start, end, y, m, d } = witaDayRange();
+      const todaysOrders = await tx.order.count({
+        where: { createdAt: { gte: start, lt: end } },
+      });
+      const orderNumber = formatOrderNumber(y, m, d, todaysOrders + 1);
+
       const created = await tx.order.create({
         data: {
-          orderNumber: generateOrderNumber(),
+          orderNumber,
           userId: parsed.userId,
           status: "PENDING_PAYMENT",
           subtotal: pricing.subtotal,

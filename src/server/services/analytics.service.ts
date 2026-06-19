@@ -10,7 +10,12 @@ const REVENUE_STATUSES = [
   "COMPLETED",
 ] as const;
 
-export type DailyRevenuePoint = { date: string; revenue: number; orders: number };
+export type DailyRevenuePoint = {
+  date: string;
+  revenue: number;
+  orders: number;
+  itemsSold: number;
+};
 
 export async function dailyRevenue(days = 30): Promise<DailyRevenuePoint[]> {
   const today = startOfDay(new Date());
@@ -22,14 +27,18 @@ export async function dailyRevenue(days = 30): Promise<DailyRevenuePoint[]> {
       createdAt: { gte: start },
       status: { in: [...REVENUE_STATUSES] },
     },
-    select: { createdAt: true, total: true },
+    select: {
+      createdAt: true,
+      total: true,
+      items: { select: { quantity: true } },
+    },
   });
 
-  const map = new Map<string, { revenue: number; orders: number }>();
+  const map = new Map<string, { revenue: number; orders: number; itemsSold: number }>();
   for (let i = 0; i < days; i++) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
-    map.set(d.toISOString().slice(0, 10), { revenue: 0, orders: 0 });
+    map.set(d.toISOString().slice(0, 10), { revenue: 0, orders: 0, itemsSold: 0 });
   }
   for (const o of orders) {
     const key = startOfDay(o.createdAt).toISOString().slice(0, 10);
@@ -37,9 +46,64 @@ export async function dailyRevenue(days = 30): Promise<DailyRevenuePoint[]> {
     if (!row) continue;
     row.revenue += o.total;
     row.orders += 1;
+    row.itemsSold += o.items.reduce((acc, it) => acc + it.quantity, 0);
   }
 
   return Array.from(map.entries()).map(([date, v]) => ({ date, ...v }));
+}
+
+export type RevenueSummary = {
+  days: number;
+  revenue: number;
+  orders: number;
+  itemsSold: number;
+  aov: number;
+  prevRevenue: number;
+  deltaPct: number | null;
+  bestDay: { date: string; revenue: number } | null;
+};
+
+/**
+ * Period totals plus a comparison against the immediately preceding window of
+ * the same length — gives the dashboard a trackable "naik/turun" signal.
+ */
+export async function revenueSummary(days = 30): Promise<RevenueSummary> {
+  const current = await dailyRevenue(days);
+  const revenue = current.reduce((a, p) => a + p.revenue, 0);
+  const orders = current.reduce((a, p) => a + p.orders, 0);
+  const itemsSold = current.reduce((a, p) => a + p.itemsSold, 0);
+
+  const today = startOfDay(new Date());
+  const currentStart = new Date(today);
+  currentStart.setDate(currentStart.getDate() - (days - 1));
+  const prevStart = new Date(currentStart);
+  prevStart.setDate(prevStart.getDate() - days);
+
+  const prev = await db.order.aggregate({
+    _sum: { total: true },
+    where: {
+      createdAt: { gte: prevStart, lt: currentStart },
+      status: { in: [...REVENUE_STATUSES] },
+    },
+  });
+  const prevRevenue = prev._sum.total ?? 0;
+
+  const bestDay = current.reduce<{ date: string; revenue: number } | null>((best, p) => {
+    if (p.revenue <= 0) return best;
+    if (!best || p.revenue > best.revenue) return { date: p.date, revenue: p.revenue };
+    return best;
+  }, null);
+
+  return {
+    days,
+    revenue,
+    orders,
+    itemsSold,
+    aov: orders === 0 ? 0 : Math.round(revenue / orders),
+    prevRevenue,
+    deltaPct: prevRevenue === 0 ? null : ((revenue - prevRevenue) / prevRevenue) * 100,
+    bestDay,
+  };
 }
 
 export async function topVariants(limit = 10) {

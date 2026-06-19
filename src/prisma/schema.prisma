@@ -102,6 +102,9 @@ model Product {
   images   ProductImage[]
   variants ProductVariant[]
   addons   ProductAddon[]
+
+  // Catalog listing: WHERE status = 'ACTIVE' ORDER BY createdAt DESC.
+  @@index([status, createdAt])
 }
 
 model ProductImage {
@@ -268,6 +271,11 @@ model Order {
   payments       Payment[]
   reservations   StockReservation[]
   statusHistory  OrderStatusHistory[]
+
+  // Analytics/dashboard: WHERE status IN (...) AND createdAt >= ...; also
+  // recent-orders and revenue-by-day scans.
+  @@index([status, createdAt])
+  @@index([createdAt])
 }
 
 model OrderStatusHistory {

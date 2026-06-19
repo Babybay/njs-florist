@@ -11,6 +11,7 @@ import {
 } from "@/components/admin/ui";
 import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { formatIDR, formatShortDate } from "@/lib/money";
+import { dailyRevenue } from "@/server/services/analytics.service";
 import {
   getActiveProductCount,
   getLowStockItems,
@@ -53,6 +54,11 @@ export default function AdminDashboardPage() {
           <RecentOrders />
         </Suspense>
 
+        <div className="grid gap-4 content-start">
+        <Suspense fallback={<CardSectionSkeleton title="Pendapatan" rows={2} />}>
+          <RevenueTeaser />
+        </Suspense>
+
         <CardSection title="Aksi cepat" description="Shortcut ke task yang sering dipakai.">
           <div className="grid gap-1">
             {[
@@ -75,6 +81,7 @@ export default function AdminDashboardPage() {
             ))}
           </div>
         </CardSection>
+        </div>
       </div>
 
       <Suspense
@@ -128,6 +135,60 @@ async function LowStockStat() {
       }
       href="/admin/inventory"
     />
+  );
+}
+
+async function RevenueTeaser() {
+  const week = await dailyRevenue(7);
+  const today = week[week.length - 1] ?? { revenue: 0, orders: 0 };
+  const weekRevenue = week.reduce((a, p) => a + p.revenue, 0);
+  const max = Math.max(...week.map((p) => p.revenue), 1);
+
+  return (
+    <CardSection
+      title="Pendapatan"
+      description="7 hari terakhir"
+      action={
+        <Link href="/admin/analytics" className="text-xs font-medium text-rose-700 hover:text-rose-900">
+          Analytics →
+        </Link>
+      }
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-xs text-stone-500">Hari ini</p>
+          <p className="mt-0.5 text-lg font-semibold tracking-tight text-stone-900">
+            {formatIDR(today.revenue)}
+          </p>
+          <p className="text-xs text-stone-500">{today.orders} pesanan</p>
+        </div>
+        <div>
+          <p className="text-xs text-stone-500">7 hari</p>
+          <p className="mt-0.5 text-lg font-semibold tracking-tight text-stone-900">
+            {formatIDR(weekRevenue)}
+          </p>
+          <p className="text-xs text-stone-500">
+            {week.reduce((a, p) => a + p.orders, 0)} pesanan
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex h-12 items-end gap-1">
+        {week.map((p) => (
+          <div
+            key={p.date}
+            title={`${new Date(p.date).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "short",
+            })}: ${formatIDR(p.revenue)}`}
+            className="flex-1 rounded-t bg-rose-700/80"
+            style={{
+              height: `${(p.revenue / max) * 100}%`,
+              minHeight: p.revenue > 0 ? "2px" : "0",
+            }}
+          />
+        ))}
+      </div>
+    </CardSection>
   );
 }
 
