@@ -12,7 +12,7 @@ import {
   getProductBySlug,
   listProductsByCategorySlug,
 } from "@/server/services/catalog.service";
-import { calculateVariantAvailability } from "@/server/services/stock.service";
+import { calculateVariantAvailabilityMap } from "@/server/services/stock.service";
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +45,15 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [variantAvailabilities, categoryProducts] = await Promise.all([
-    Promise.all(
-      product.variants.map(async (variant) => ({
-        ...variant,
-        availability: await calculateVariantAvailability(variant.id),
-      })),
-    ),
+  const [availabilityMap, categoryProducts] = await Promise.all([
+    calculateVariantAvailabilityMap(product.variants.map((v) => v.id)),
     listProductsByCategorySlug(product.category.slug),
   ]);
+
+  const variantAvailabilities = product.variants.map((variant) => ({
+    ...variant,
+    availability: availabilityMap.get(variant.id) ?? 0,
+  }));
 
   const lowestPriceAdjust = product.variants.length
     ? Math.min(...product.variants.map((variant) => variant.priceAdjust))

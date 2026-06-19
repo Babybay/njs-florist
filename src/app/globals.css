@@ -282,4 +282,21 @@ img {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+
+  /* Ink saving: no heavy black bold, no solid dark fills when printing. */
+  .invoice-document,
+  .invoice-document * {
+    font-weight: 400 !important;
+    color: #1c1917 !important;
+  }
+
+  /* Flip solid dark boxes (e.g. "Sisa tagihan") to a light bordered look. */
+  .invoice-document .bg-stone-900 {
+    background-color: #ffffff !important;
+    border: 1px solid #a8a29e !important;
+  }
+  .invoice-document .bg-stone-50,
+  .invoice-document .bg-stone-100 {
+    background-color: #ffffff !important;
+  }
 }

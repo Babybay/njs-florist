@@ -23,7 +23,12 @@ const ALLOWED: Record<OrderStatus, OrderStatus[]> = {
   REFUNDED: [],
 };
 
-const NOTIFY_ON: OrderStatus[] = ["PREPARING", "OUT_FOR_DELIVERY", "DELIVERED"];
+const NOTIFY_ON: OrderStatus[] = [
+  "PREPARING",
+  "READY_FOR_DELIVERY",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+];
 
 export type TransitionInput = {
   orderId: string;

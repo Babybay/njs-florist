@@ -35,7 +35,7 @@ export default async function AdminInvoiceDetailPage({
   const invoice = await getInvoice(orderNumber);
   if (!invoice) notFound();
 
-  const { order, settings } = invoice;
+  const { order, settings, materials } = invoice;
   const pickupSlot = await slotLabel(order.deliverySlotId);
   const businessName = settings.business_name || "njs Florist";
   const businessPhone = settings.business_phone || "";
@@ -138,21 +138,57 @@ export default async function AdminInvoiceDetailPage({
               {order.items.map((item) => {
                 const addonsTotal = item.addons.reduce((sum, addon) => sum + addon.totalPrice, 0);
                 const lineTotal = item.totalPrice + addonsTotal;
+                const photo = item.variant.product.images[0]?.url;
+                const itemMaterials = item.variant.recipes.map((recipe) => ({
+                  name: recipe.inventoryItem.name,
+                  unit: recipe.inventoryItem.unit,
+                  used: recipe.quantityNeeded * item.quantity,
+                }));
 
                 return (
                   <tr key={item.id}>
                     <td className="py-2.5 pr-4 align-top">
-                      <p className="font-medium">{item.productName}</p>
-                      <p className="text-xs text-stone-500">{item.variantName}</p>
-                      {item.addons.length > 0 ? (
-                        <ul className="mt-1 grid gap-0.5 text-[11px] text-stone-600">
-                          {item.addons.map((addon) => (
-                            <li key={addon.id}>
-                              + {addon.addonName} x {addon.quantity} ({formatIDR(addon.totalPrice)})
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
+                      <div className="flex gap-3">
+                        {photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- plain img prints reliably
+                          <img
+                            src={photo}
+                            alt={item.productName}
+                            className="h-14 w-14 shrink-0 rounded-md border border-stone-200 object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-dashed border-stone-200 bg-stone-50 text-stone-300">
+                            🌸
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium">{item.productName}</p>
+                          <p className="text-xs text-stone-500">{item.variantName}</p>
+                          {itemMaterials.length > 0 ? (
+                            <div className="mt-1.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                                Bahan dipakai
+                              </p>
+                              <ul className="mt-0.5 grid gap-0.5 text-[11px] text-stone-600">
+                                {itemMaterials.map((mat) => (
+                                  <li key={mat.name}>
+                                    {mat.name} — {mat.used} {mat.unit}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                          {item.addons.length > 0 ? (
+                            <ul className="mt-1 grid gap-0.5 text-[11px] text-stone-600">
+                              {item.addons.map((addon) => (
+                                <li key={addon.id}>
+                                  + {addon.addonName} x {addon.quantity} ({formatIDR(addon.totalPrice)})
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-2 py-2.5 text-right align-top">{item.quantity}</td>
                     <td className="px-2 py-2.5 text-right align-top">{formatIDR(item.unitPrice)}</td>
@@ -166,6 +202,21 @@ export default async function AdminInvoiceDetailPage({
 
         <div className="invoice-block grid gap-4 border-t border-stone-200 pt-4 md:grid-cols-[1fr_300px]">
           <div className="grid content-start gap-3 text-xs text-stone-600">
+            {materials.length > 0 ? (
+              <div className="rounded-md bg-stone-50 px-3 py-2">
+                <p className="font-medium text-stone-900">Rekap bahan baku terpakai</p>
+                <ul className="mt-1 grid gap-1 sm:grid-cols-2">
+                  {materials.map((mat) => (
+                    <li key={mat.name} className="flex justify-between gap-3">
+                      <span>{mat.name}</span>
+                      <span className="font-medium text-stone-900">
+                        {mat.quantity} {mat.unit}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {order.cardMessage ? (
               <div className="rounded-md bg-stone-50 px-3 py-2">
                 <p className="font-medium text-stone-900">Pesan kartu</p>
