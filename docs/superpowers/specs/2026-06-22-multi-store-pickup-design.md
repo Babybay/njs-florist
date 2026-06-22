@@ -25,8 +25,10 @@ can track and filter orders per store.
 1. **Data model:** a proper `Store` table with an `Order.storeId` foreign key.
    Not lightweight settings entries. Scales beyond two stores and keeps order
    history accurate when an address is edited.
-2. **Slots:** stay **shared/global**. No per-store slot schema changes. Both
-   stores draw from the same `DeliverySlot` list and capacity.
+2. **Slots:** are **per-store**. Each `DeliverySlot` belongs to one store via a
+   `storeId` foreign key. The customer's slot choices at checkout are filtered
+   to the selected store, and each store's capacity is counted independently
+   (its slots are distinct rows). The admin slot manager is scoped by store.
 3. **Admin view:** add a **store filter + store column** to the existing orders
    list. No separate page per store. Analytics gets a per-store breakdown.
 4. **Store 2 seed:** seeded with editable placeholder text; the owner edits the
@@ -65,6 +67,18 @@ model Store {
   @@index([storeId, status])
 ```
 
+`DeliverySlot` changes (per-store slots):
+
+```prisma
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+```
+
+And `Store` gains `slots DeliverySlot[]`. `DeliverySlotOverride` is unchanged —
+it stays keyed by `slotId`, which now transitively belongs to a store.
+
 ### Migration & backfill (ordered, single migration)
 
 1. Create the `Store` table.
@@ -75,7 +89,11 @@ model Store {
    (`address = "Alamat toko kedua — ubah di Pengaturan"`, `sortOrder = 1`).
 4. Add `Order.storeId` as **nullable**, backfill **all existing orders** to
    Store 1's id, then alter the column to **NOT NULL**.
-5. Add the `@@index([storeId, status])`.
+5. Add `DeliverySlot.storeId` as **nullable**, backfill **all existing slots**
+   to Store 1's id, then alter to **NOT NULL**. (Existing slots become Store 1's
+   schedule; the owner adds Store 2's slots in admin.)
+6. Add the `@@index([storeId, status])` on `Order` and `@@index([storeId])` on
+   `DeliverySlot`.
 
 The legacy `pickup_address` setting key is **retired from the settings UI** but
 left in the DB/`DEFAULT_SETTINGS` so nothing reading it breaks mid-migration.
@@ -87,11 +105,14 @@ idempotently.
 - **`CheckoutForm`** (`src/components/checkout/checkout-form.tsx`): replace the
   static "Pickup di toko" address box with a **required store picker** — radio
   cards, one per active store, each showing name + address (+ phone if set).
-  First active store is pre-selected. Selecting a card updates the displayed
-  address. Hidden/!radio input name: `storeId`.
+  First active store is pre-selected. Because slots are per-store, the form
+  tracks the selected `storeId` in client state and **filters the slot dropdown
+  to that store's slots** (selecting a different store re-populates the slot
+  options). Radio input name: `storeId`; slot select name: `slotId`.
 - **Checkout page** (`src/app/(store)/checkout/page.tsx`): load active stores
-  (ordered by `sortOrder`) instead of the single `pickup_address` setting; pass
-  `stores` to the form.
+  (ordered by `sortOrder`) and active slots **including each slot's `storeId`**,
+  instead of the single `pickup_address` setting; pass both to the form so it
+  can group slots by store on the client.
 - **`submitCheckoutAction`** (`src/server/actions/checkout.actions.ts`): read
   `storeId` from form data; require it alongside the other mandatory fields.
 - **`checkoutInputSchema`** (`src/server/validations/checkout.validation.ts`):
@@ -99,6 +120,11 @@ idempotently.
 - **`createCheckoutOrder`** (`src/server/services/checkout.service.ts`):
   validate the store exists and `isActive`; persist `storeId` on the order.
   Reject inactive/unknown store with a clear error.
+- **`validateDeliverySlot`** (`src/server/services/delivery.service.ts`): gains a
+  `storeId` argument and asserts the chosen slot **belongs to that store**
+  (`slot.storeId === storeId`), rejecting mismatches. Capacity counting is
+  unchanged — because each store's slots are distinct rows, the existing
+  count-by-`deliverySlotId` is already scoped per store.
 
 ### Customer-facing display
 
@@ -128,6 +154,10 @@ The chosen store's address (and phone, if set) replaces the global
   (`src/server/services/store.service.ts`) holds `listStores`,
   `listActiveStores`, `createStore`, `updateStore`, `setStoreActive` with zod
   validation.
+- **Slot manager** (`src/app/admin/delivery`): slots are created and listed
+  **per store**. The create form (`slot-create-form.tsx`) gains a store selector;
+  `createDeliverySlot` + its action + schema accept `storeId`; the page groups
+  the slot list by store. `listAllDeliverySlots` includes the store relation.
 - **Analytics** (`src/app/admin/analytics`): add a per-store breakdown
   (order count + revenue grouped by `storeId`).
 - **Calendar feed** (`src/server/services/calendar-feed.service.ts`): event
@@ -140,8 +170,9 @@ The chosen store's address (and phone, if set) replaces the global
 |------|----------------|------------|
 | `Store` model + migration | Persist stores; FK from orders | Prisma |
 | `store.service.ts` | Store CRUD + active-store reads + validation | db, zod |
-| `CheckoutForm` store picker | Let customer pick a store | active stores list |
-| `createCheckoutOrder` | Validate + persist `storeId` | store.service |
+| `CheckoutForm` store picker | Let customer pick a store + filter slots | active stores + slots |
+| `createCheckoutOrder` | Validate store + slot-store match; persist `storeId` | store.service, delivery.service |
+| Admin slot manager | Manage slots per store | delivery-slot.service, store.service |
 | `listOrders` store filter | Query orders by store | db |
 | Admin stores panel | Manage stores | store.service |
 | Customer display surfaces | Show `order.store` address | order.store include |
@@ -164,12 +195,13 @@ The chosen store's address (and phone, if set) replaces the global
   combines correctly with status/date/q filters.
 - **`store.service`:** create/update validation (blank name/address rejected);
   `listActiveStores` excludes inactive and orders by `sortOrder`.
-- **Migration:** every pre-existing order ends up with a non-null `storeId`
-  pointing at Store 1.
+- **Slot-store match:** `validateDeliverySlot` rejects a slot whose `storeId`
+  differs from the order's chosen store.
+- **Migration:** every pre-existing order **and** every pre-existing slot ends
+  up with a non-null `storeId` pointing at Store 1.
 
 ## Out of scope (YAGNI)
 
-- Per-store slot schedules / capacity (slots remain global).
 - Per-store inventory/stock separation.
 - Delivery (the app remains pickup-only).
 - More than the seeded two stores at launch (the model supports N; admin can

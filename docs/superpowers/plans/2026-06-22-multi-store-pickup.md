@@ -4,7 +4,7 @@
 
 **Goal:** Let customers choose which of two physical stores to pick up from at checkout, and let admins filter/track orders per store.
 
-**Architecture:** Add a `Store` Prisma model with an `Order.storeId` foreign key. Seed two stores (migrating the existing `pickup_address` into Store 1). Add a required store picker to checkout, surface the chosen store's address on every customer-facing pickup display, and add a store filter + column to the admin orders list plus a per-store analytics breakdown. Pickup time slots stay global.
+**Architecture:** Add a `Store` Prisma model with `storeId` foreign keys on both `Order` and `DeliverySlot` (slots are per-store). Seed two stores (migrating the existing `pickup_address` into Store 1). Add a required store picker to checkout that filters the slot dropdown to the chosen store, surface the chosen store's address on every customer-facing pickup display, scope the admin slot manager by store, and add a store filter + column to the admin orders list plus a per-store analytics breakdown.
 
 **Tech Stack:** Next.js 16 (App Router, Server Components, Server Actions), Prisma 6 + PostgreSQL, Zod 4, Tailwind 4, Resend (email).
 
@@ -12,6 +12,7 @@
 
 - **No test runner.** Verify every task with `npx tsc --noEmit` (type-check) and `npm run build` (must succeed), plus the manual steps stated in each task. Do not add vitest/jest.
 - **Pickup-only.** The app does not do delivery; the `Order.delivery*` fields are repurposed for pickup. Do not rename them.
+- **Slots are per-store.** Each `DeliverySlot` belongs to one store. Slot capacity is naturally independent per store (distinct rows), so the existing count-by-`deliverySlotId` logic stays correct.
 - **Prisma schema path:** all prisma commands take `--schema src/prisma/schema.prisma` (already wired into `npm run db:*` scripts).
 - **Money is stored as integer IDR** (no decimals). Use `formatIDR` from `src/lib/money.ts` for display.
 - **UI copy is Indonesian.** Match existing tone (e.g. "Pilih toko", "Toko pickup").
@@ -24,15 +25,16 @@
 ### Task 1: `Store` model, migration, backfill, seed, and store service
 
 **Files:**
-- Modify: `src/prisma/schema.prisma` (add `Store` model; add `storeId`/`store`/index to `Order`)
+- Modify: `src/prisma/schema.prisma` (add `Store` model; add `storeId`/`store`/index to `Order` and `DeliverySlot`)
 - Create: `src/prisma/migrations/<timestamp>_add_stores/migration.sql` (generated then hand-edited)
 - Create: `src/server/services/store.service.ts`
 - Modify: `src/prisma/seed.ts` (upsert two stores idempotently)
 
 **Interfaces:**
 - Produces:
-  - Prisma `Store { id, name, address, phone?, mapsUrl?, sortOrder, isActive, createdAt, updatedAt, orders }`
+  - Prisma `Store { id, name, address, phone?, mapsUrl?, sortOrder, isActive, createdAt, updatedAt, orders, slots }`
   - `Order.storeId: string` (NOT NULL) + `Order.store` relation
+  - `DeliverySlot.storeId: string` (NOT NULL) + `DeliverySlot.store` relation
   - `store.service.ts` exports:
     - `listStores(): Promise<Store[]>` — all stores, ordered by `sortOrder` asc
     - `listActiveStores(): Promise<Store[]>` — `isActive: true`, ordered by `sortOrder` asc
@@ -59,6 +61,7 @@ model Store {
   updatedAt DateTime @updatedAt
 
   orders Order[]
+  slots  DeliverySlot[]
 }
 ```
 
@@ -73,6 +76,15 @@ And add this index alongside the existing `Order` indexes:
 
 ```prisma
   @@index([storeId, status])
+```
+
+In the `DeliverySlot` model, add the same nullable relation (next to its other fields) and an index:
+
+```prisma
+  storeId String?
+  store   Store?  @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
 ```
 
 - [ ] **Step 2: Generate the migration as create-only (do not apply yet)**
@@ -104,13 +116,19 @@ VALUES (
 
 -- Backfill every existing order to Store 1.
 UPDATE "Order" SET "storeId" = 'store_seed_1' WHERE "storeId" IS NULL;
+
+-- Backfill every existing delivery slot to Store 1 (Store 1 keeps the current schedule).
+UPDATE "DeliverySlot" SET "storeId" = 'store_seed_1' WHERE "storeId" IS NULL;
 ```
 
-Then append at the very end of the file (after the FK + index), to enforce NOT NULL now that every row has a value:
+Then append at the very end of the file (after the FKs + indexes), to enforce NOT NULL now that every row has a value:
 
 ```sql
 ALTER TABLE "Order" ALTER COLUMN "storeId" SET NOT NULL;
+ALTER TABLE "DeliverySlot" ALTER COLUMN "storeId" SET NOT NULL;
 ```
+
+> Note: the generated migration creates the FK + index for **both** `Order` and `DeliverySlot` (since both got `storeId` in Step 1). The seed/backfill INSERTs and UPDATEs must run after `CREATE TABLE "Store"` and before the `SET NOT NULL` lines.
 
 - [ ] **Step 4: Apply the migration**
 
@@ -119,7 +137,16 @@ Expected: migration applies cleanly; `prisma generate` runs. No "column contains
 
 - [ ] **Step 5: Make the schema match the enforced NOT NULL**
 
-Now that the DB column is NOT NULL, update `src/prisma/schema.prisma` to drop the `?` so the Prisma client types match:
+Now that the DB columns are NOT NULL, update `src/prisma/schema.prisma` to drop the `?` on **both** relations so the Prisma client types match.
+
+In `Order`:
+
+```prisma
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
+```
+
+In `DeliverySlot`:
 
 ```prisma
   storeId String
@@ -127,7 +154,7 @@ Now that the DB column is NOT NULL, update `src/prisma/schema.prisma` to drop th
 ```
 
 Run: `npx prisma generate --schema src/prisma/schema.prisma`
-Expected: client regenerates; `order.storeId` is typed `string` (non-null).
+Expected: client regenerates; `order.storeId` and `deliverySlot.storeId` are typed `string` (non-null).
 
 - [ ] **Step 6: Create the store service**
 
@@ -219,7 +246,7 @@ In `src/prisma/seed.ts`, add a store upsert near the other seed data (use the sa
 
 Run: `npx tsc --noEmit`
 Expected: no type errors.
-Run: `npx prisma studio --schema src/prisma/schema.prisma` (optional) and confirm the `Store` table has 2 rows and every `Order` has a `storeId`. Alternatively run a quick query in studio or psql: every order's `storeId` is non-null and points at `store_seed_1`.
+Run: `npx prisma studio --schema src/prisma/schema.prisma` (optional) and confirm the `Store` table has 2 rows, every `Order` has a `storeId`, and every `DeliverySlot` has a `storeId` (all pointing at `store_seed_1`).
 
 - [ ] **Step 9: Commit**
 
@@ -398,18 +425,189 @@ git commit -m "feat(admin): manage pickup stores from settings"
 
 ---
 
-### Task 3: Customer checkout store picker
+### Task 3: Admin slot manager — per store
+
+**Files:**
+- Modify: `src/server/services/delivery-slot.service.ts` (add `storeId` to create schema + create)
+- Modify: `src/server/services/delivery.service.ts` (`listAllDeliverySlots` includes store)
+- Modify: `src/server/actions/delivery-slot.actions.ts` (read + pass `storeId` on create)
+- Modify: `src/components/admin/slot-create-form.tsx` (store selector)
+- Modify: `src/app/admin/delivery/page.tsx` (load stores, group slot list by store)
+
+**Interfaces:**
+- Consumes: `listStores` from `store.service.ts` (Task 1).
+- Produces: new slots are created with a `storeId`; `listAllDeliverySlots` rows include `store`.
+
+- [ ] **Step 1: Add `storeId` to the slot create schema and creation**
+
+In `src/server/services/delivery-slot.service.ts`, add `storeId` to `slotCreateSchema` (the update schema inherits via `.partial()`, which is fine — slot store reassignment is out of scope):
+
+```typescript
+export const slotCreateSchema = z.object({
+  storeId: z.string().min(1, "Pilih toko."),
+  label: z.string().trim().min(1).max(60),
+  startTime: z.string().regex(timeRegex, "Format jam HH:MM"),
+  endTime: z.string().regex(timeRegex, "Format jam HH:MM"),
+  capacity: z.coerce.number().int().min(1).max(500),
+  isActive: z.coerce.boolean().optional().default(true),
+});
+```
+
+`createDeliverySlot` already spreads the parsed object into `data`, so `storeId` is persisted automatically — no change to the function body. (`updateDeliverySlot` strips `id` and updates the rest; since the update form won't send `storeId`, the partial schema leaves it untouched.)
+
+- [ ] **Step 2: Include the store relation in `listAllDeliverySlots`**
+
+In `src/server/services/delivery.service.ts`, change `listAllDeliverySlots` to include the store:
+
+```typescript
+export async function listAllDeliverySlots() {
+  return db.deliverySlot.findMany({
+    orderBy: [{ storeId: "asc" }, { startTime: "asc" }],
+    include: { store: { select: { id: true, name: true } } },
+  });
+}
+```
+
+- [ ] **Step 3: Read `storeId` in the create action**
+
+In `src/server/actions/delivery-slot.actions.ts`, add `storeId` to `parseForm` and pass it on create. Update `parseForm`:
+
+```typescript
+function parseForm(formData: FormData) {
+  return {
+    id: formData.get("id")?.toString(),
+    storeId: formData.get("storeId")?.toString() ?? "",
+    label: formData.get("label")?.toString() ?? "",
+    startTime: formData.get("startTime")?.toString() ?? "",
+    endTime: formData.get("endTime")?.toString() ?? "",
+    capacity: formData.get("capacity")?.toString() ?? "0",
+    isActive: formData.get("isActive") === "on",
+  };
+}
+```
+
+Update `createDeliverySlotAction` to forward `storeId`:
+
+```typescript
+export async function createDeliverySlotAction(formData: FormData) {
+  await requireAdmin();
+  const { storeId, label, startTime, endTime, capacity } = parseForm(formData);
+  await createDeliverySlot({ storeId, label, startTime, endTime, capacity });
+  invalidateSlots();
+  revalidatePath("/admin/delivery");
+}
+```
+
+(`updateDeliverySlotAction` is unchanged — it does not send `storeId`.)
+
+- [ ] **Step 4: Add a store selector to the slot create form**
+
+In `src/components/admin/slot-create-form.tsx`, accept a `stores` prop and render a `<select name="storeId">` as the first field. Update the component signature and add the select:
+
+```tsx
+export function SlotCreateForm({ stores }: { stores: { id: string; name: string }[] }) {
+```
+
+Add this `<select>` as the first child inside the `<form>` (before the label input), and widen the grid template by one column (change `sm:grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr_auto]` to `sm:grid-cols-[1fr_1.4fr_0.6fr_0.6fr_0.6fr_auto]`):
+
+```tsx
+      <select name="storeId" required defaultValue={stores[0]?.id ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500">
+        {stores.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+      </select>
+```
+
+- [ ] **Step 5: Group the slot list by store on the delivery page**
+
+In `src/app/admin/delivery/page.tsx`:
+
+Add the import:
+
+```typescript
+import { listStores } from "@/server/services/store.service";
+```
+
+Add `listStores()` to the existing `Promise.all` and capture it (append to the destructure + the array):
+
+```typescript
+  const [slots, monthUtilization, fortnightUtilization, upcomingOverrides, calendarFeed, stores] = await Promise.all([
+    listAllDeliverySlots(),
+    computeSlotUtilization({ from: monthStart, to: monthEnd }),
+    computeSlotUtilization({ days: 14 }),
+    listUpcomingOverrides(90),
+    getCalendarFeedUrl(),
+    listStores(),
+  ]);
+```
+
+Pass `stores` to the create form:
+
+```tsx
+          <SlotCreateForm stores={stores} />
+```
+
+In the slot list rendering (the `slots.map((slot) => <SlotRow .../>)` block inside the "Slot harian" `CardSection`), prefix each row with its store name so admins can tell them apart. Replace the `slots.map(...)` block with a grouped render:
+
+```tsx
+          {stores.map((store) => {
+            const storeSlots = slots.filter((s) => s.storeId === store.id);
+            if (storeSlots.length === 0) return null;
+            return (
+              <div key={store.id} className="grid gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">{store.name}</p>
+                {storeSlots.map((slot) => (
+                  <SlotRow
+                    key={slot.id}
+                    slot={{
+                      id: slot.id,
+                      label: slot.label,
+                      startTime: slot.startTime,
+                      endTime: slot.endTime,
+                      capacity: slot.capacity,
+                      isActive: slot.isActive,
+                    }}
+                    utilization={(utilBySlot.get(slot.id) ?? []).slice(0, 14)}
+                  />
+                ))}
+              </div>
+            );
+          })}
+```
+
+(Keep the existing `slots.length === 0` empty-state check below the grouped render.)
+
+- [ ] **Step 6: Verify**
+
+Run: `npx tsc --noEmit`
+Expected: no type errors.
+Run: `npm run build`
+Expected: build succeeds.
+Manual: `npm run dev`, open `/admin/delivery`. Confirm the create form has a store dropdown; create a slot for Store 2. Confirm the slot list is grouped by store and the new slot appears under Store 2. The pre-existing slots appear under Store 1.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/server/services/delivery-slot.service.ts src/server/services/delivery.service.ts src/server/actions/delivery-slot.actions.ts src/components/admin/slot-create-form.tsx src/app/admin/delivery/page.tsx
+git commit -m "feat(admin): manage pickup slots per store"
+```
+
+---
+
+### Task 4: Customer checkout store picker
 
 **Files:**
 - Modify: `src/server/validations/checkout.validation.ts` (add `storeId`)
+- Modify: `src/server/services/delivery.service.ts` (slot-store match in `validateDeliverySlot`)
+- Modify: `src/server/actions/delivery.actions.ts` (keep its `validateDeliverySlot` caller type-correct)
 - Modify: `src/server/services/checkout.service.ts` (validate + persist `storeId`)
 - Modify: `src/server/actions/checkout.actions.ts` (read + pass `storeId`)
-- Modify: `src/components/checkout/checkout-form.tsx` (store picker UI)
-- Modify: `src/app/(store)/checkout/page.tsx` (load active stores)
+- Modify: `src/components/checkout/checkout-form.tsx` (store picker + slot filtering)
+- Modify: `src/app/(store)/checkout/page.tsx` (load active stores + slots)
 
 **Interfaces:**
 - Consumes: `listActiveStores` from `store.service.ts` (Task 1).
-- Produces: orders persisted with a validated `storeId`.
+- Produces: orders persisted with a validated `storeId`; `validateDeliverySlot(slotId, date, storeId)`; `listActiveDeliverySlots` rows include `storeId`.
 
 - [ ] **Step 1: Add `storeId` to the checkout schema**
 
@@ -437,7 +635,30 @@ export const checkoutInputSchema = z.object({
 });
 ```
 
-- [ ] **Step 2: Validate + persist the store in the checkout service**
+- [ ] **Step 2: Add a slot-store match check to `validateDeliverySlot`**
+
+In `src/server/services/delivery.service.ts`, change the signature to accept `storeId` and assert the slot belongs to that store. Update the function header and the existing not-found guard:
+
+```typescript
+export async function validateDeliverySlot(slotId: string, date: Date, storeId: string) {
+  const slot = await db.deliverySlot.findUnique({ where: { id: slotId } });
+  if (!slot) throw new Error("Delivery slot is not available.");
+  if (slot.storeId !== storeId) {
+    throw new Error("Slot pickup tidak tersedia untuk toko yang dipilih.");
+  }
+```
+
+The rest of the function (override lookup, cutoff, capacity count) is unchanged — capacity is already scoped because each store has its own slot rows.
+
+There is one other (currently unused) caller, `validateDeliverySlotAction` in `src/server/actions/delivery.actions.ts`. Update it to stay type-correct by threading `storeId` through:
+
+```typescript
+export async function validateDeliverySlotAction(slotId: string, date: Date, storeId: string) {
+  return validateDeliverySlot(slotId, date, storeId);
+}
+```
+
+- [ ] **Step 3: Validate + persist the store in the checkout service**
 
 In `src/server/services/checkout.service.ts`:
 
@@ -447,13 +668,15 @@ Add near the top with the other imports:
 import { getStore } from "@/server/services/store.service";
 ```
 
-After the cart is loaded and before `validateDeliverySlot` (around line 37), validate the store:
+After the cart is loaded, validate the store, then pass `storeId` into the slot validation (replace the existing `await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date);` call around line 37):
 
 ```typescript
   const store = await getStore(parsed.storeId);
   if (!store || !store.isActive) {
     throw new Error("Toko pickup tidak valid. Silakan pilih toko lain.");
   }
+
+  await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date, parsed.storeId);
 ```
 
 In the `tx.order.create({ data: { ... } })` block, add `storeId` to the data object (next to `userId`):
@@ -463,7 +686,7 @@ In the `tx.order.create({ data: { ... } })` block, add `storeId` to the data obj
           storeId: parsed.storeId,
 ```
 
-- [ ] **Step 3: Read `storeId` in the checkout action**
+- [ ] **Step 4: Read `storeId` in the checkout action**
 
 In `src/server/actions/checkout.actions.ts`:
 
@@ -494,20 +717,35 @@ Pass `storeId` into `createCheckoutOrder` (around line 48):
     });
 ```
 
-- [ ] **Step 4: Replace the static address box with a store picker in the form**
+- [ ] **Step 5: Replace the static address box with a store picker + per-store slot filtering**
 
 In `src/components/checkout/checkout-form.tsx`:
 
-Replace the `pickupAddress: string` prop with a `stores` prop and render radio cards. Change the props type and the static box. New top of the component:
+This component already has `"use client"` at the top. Add a `useState` import, change the `Slot` type to carry `storeId`, replace the `pickupAddress` prop with `stores`, track the selected store, and filter the slot list. Update the imports and types:
 
 ```tsx
+import { useActionState, useState } from "react";
+```
+
+```tsx
+type Slot = {
+  id: string;
+  label: string;
+  capacity: number;
+  storeId: string;
+};
+
 type Store = {
   id: string;
   name: string;
   address: string;
   phone: string | null;
 };
+```
 
+New component header + selected-store state (replace the existing function signature and the `useActionState` line):
+
+```tsx
 export function CheckoutForm({
   slots,
   minDate,
@@ -518,21 +756,24 @@ export function CheckoutForm({
   stores: Store[];
 }) {
   const [state, formAction, pending] = useActionState(submitCheckoutAction, initialState);
+  const [selectedStoreId, setSelectedStoreId] = useState(stores[0]?.id ?? "");
+  const storeSlots = slots.filter((slot) => slot.storeId === selectedStoreId);
 ```
 
-Replace the existing "Pickup di toko" box (the `<div>` at lines 34–37) with:
+Replace the existing "Pickup di toko" box (the `<div>` at lines 34–37) with a store picker whose radios update `selectedStoreId`:
 
 ```tsx
       <fieldset className="grid gap-2 rounded-md border border-black/15 bg-[color:var(--blush)] px-4 py-3 text-sm text-black">
         <legend className="font-semibold uppercase tracking-[0.14em]">Pilih toko pickup *</legend>
-        {stores.map((store, i) => (
+        {stores.map((store) => (
           <label key={store.id} className="flex cursor-pointer gap-3 rounded-md border border-black/10 bg-white/70 p-3 has-[:checked]:border-black has-[:checked]:bg-white">
             <input
               type="radio"
               name="storeId"
               value={store.id}
               required
-              defaultChecked={i === 0}
+              checked={selectedStoreId === store.id}
+              onChange={() => setSelectedStoreId(store.id)}
               className="mt-1 h-4 w-4 accent-black"
             />
             <span className="grid gap-0.5">
@@ -545,7 +786,19 @@ Replace the existing "Pickup di toko" box (the `<div>` at lines 34–37) with:
       </fieldset>
 ```
 
-- [ ] **Step 5: Load active stores on the checkout page**
+Then update the existing slot `<select>` (around line 76) to iterate `storeSlots` instead of `slots`, so it only shows the selected store's slots. The select must re-render when the store changes (it does — `storeSlots` is derived from state). Replace the `{slots.map(...)}` inside the slot select with:
+
+```tsx
+            {storeSlots.map((slot) => (
+              <option key={slot.id} value={slot.id}>
+                {slot.label}
+              </option>
+            ))}
+```
+
+(If `storeSlots` is empty for a store with no slots configured yet, the dropdown shows only the "Pilih slot" placeholder — acceptable; the owner must add that store's slots in admin.)
+
+- [ ] **Step 6: Load active stores on the checkout page**
 
 In `src/app/(store)/checkout/page.tsx`:
 
@@ -555,7 +808,7 @@ Add the import:
 import { listActiveStores } from "@/server/services/store.service";
 ```
 
-Replace the `getSetting(SETTING_KEYS.PICKUP_ADDRESS)` entry in the `Promise.all` with `listActiveStores()`, and rename the destructured variable:
+Replace the `getSetting(SETTING_KEYS.PICKUP_ADDRESS)` entry in the `Promise.all` with `listActiveStores()`, and rename the destructured variable. `listActiveDeliverySlots()` already returns whole `DeliverySlot` rows, so each slot now carries `storeId` automatically (added in Task 1) — no change to that call is needed:
 
 ```typescript
   const [cart, slots, deliveryFee, cutoffHour, stores] = await Promise.all([
@@ -573,26 +826,26 @@ Update the `<CheckoutForm .../>` call (line 84):
           <CheckoutForm slots={slots} minDate={minDeliveryDate(cutoffHour)} stores={stores} />
 ```
 
-(If `getSetting`/`SETTING_KEYS` become unused after this, remove the now-dead import to keep the build clean — but `SETTING_KEYS` is still used for `SAME_DAY_CUTOFF_HOUR`, so keep it.)
+(`getSetting` may now be unused on this page — if `npx tsc --noEmit` flags it, remove it from the import. Keep `getSettingNumber` and `SETTING_KEYS`, both still used for the same-day cutoff.)
 
-- [ ] **Step 6: Verify**
+- [ ] **Step 7: Verify**
 
 Run: `npx tsc --noEmit`
 Expected: no type errors.
 Run: `npm run build`
 Expected: build succeeds.
-Manual: `npm run dev`, add an item to cart, go to `/checkout`, confirm both stores render as radio cards with the first pre-selected. Complete a checkout and confirm (in Prisma Studio or the admin order detail) the new order's `storeId` matches the picked store.
+Manual: `npm run dev`, add an item to cart, go to `/checkout`, confirm both stores render as radio cards with the first pre-selected. Confirm the **slot dropdown shows only the selected store's slots**, and switching the store radio changes the available slots (Task 3 should have created at least one slot for each store; if a store has no slots its dropdown shows only the placeholder). Complete a checkout and confirm (in Prisma Studio or the admin order detail) the new order's `storeId` matches the picked store.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/server/validations/checkout.validation.ts src/server/services/checkout.service.ts src/server/actions/checkout.actions.ts src/components/checkout/checkout-form.tsx "src/app/(store)/checkout/page.tsx"
-git commit -m "feat(checkout): let customer choose pickup store"
+git add src/server/validations/checkout.validation.ts src/server/services/delivery.service.ts src/server/actions/delivery.actions.ts src/server/services/checkout.service.ts src/server/actions/checkout.actions.ts src/components/checkout/checkout-form.tsx "src/app/(store)/checkout/page.tsx"
+git commit -m "feat(checkout): let customer choose pickup store and store-scoped slot"
 ```
 
 ---
 
-### Task 4: Show the chosen store on customer-facing surfaces
+### Task 5: Show the chosen store on customer-facing surfaces
 
 **Files:**
 - Modify: `src/server/services/notification.service.ts` (confirmation email)
@@ -681,7 +934,7 @@ git commit -m "feat(orders): show chosen pickup store to customers and on invoic
 
 ---
 
-### Task 5: Admin orders list — store filter and column
+### Task 6: Admin orders list — store filter and column
 
 **Files:**
 - Modify: `src/server/services/order.service.ts` (`listOrders` store filter + include store)
@@ -822,7 +1075,7 @@ git commit -m "feat(admin): filter and display orders by store"
 
 ---
 
-### Task 6: Per-store analytics breakdown and calendar feed location
+### Task 7: Per-store analytics breakdown and calendar feed location
 
 **Files:**
 - Modify: `src/server/services/calendar-feed.service.ts` (use per-order store address)
@@ -921,7 +1174,7 @@ git commit -m "feat(admin): per-store analytics and calendar feed location"
 
 ## Self-Review Notes
 
-- **Spec coverage:** Store model + migration/backfill + seed (Task 1) ✓; customer store picker + validation (Task 3) ✓; customer-facing display: email/track/account/invoice (Task 4) ✓; admin orders filter + column + detail (Task 5) ✓; stores management UI (Task 2) ✓; analytics breakdown + calendar feed (Task 6) ✓; error handling for missing/inactive store (Task 3 service guard + action guard) ✓; deactivating a store doesn't break existing orders (FK kept; inactive hidden from picker via `listActiveStores`) ✓; `pickup_address` retired from UI but kept in `DEFAULT_SETTINGS` (Task 2 Step 3) ✓.
-- **Slots remain global** — no slot schema touched anywhere. ✓
-- **Type consistency:** `storeId` is `string` (non-null) after Task 1 Step 5; all consumers (`order.store.name`/`.address`) rely on the non-null relation; invoice/calendar use optional chaining defensively only where the include is added in the same task.
+- **Spec coverage:** Store model + migration/backfill + seed for orders **and slots** (Task 1) ✓; stores management UI (Task 2) ✓; per-store admin slot manager (Task 3) ✓; customer store picker + store-scoped slot filtering + slot-store validation (Task 4) ✓; customer-facing display: email/track/account/invoice (Task 5) ✓; admin orders filter + column + detail (Task 6) ✓; analytics breakdown + calendar feed (Task 7) ✓; error handling for missing/inactive store (Task 4 service guard + action guard) and slot-store mismatch (Task 4 `validateDeliverySlot`) ✓; deactivating a store doesn't break existing orders (FK kept; inactive hidden from picker via `listActiveStores`) ✓; `pickup_address` retired from UI but kept in `DEFAULT_SETTINGS` (Task 2 Step 3) ✓.
+- **Slots are per-store:** `DeliverySlot.storeId` added + backfilled (Task 1); created per store (Task 3); filtered at checkout + validated (Task 4). Capacity stays per-store because each store owns distinct slot rows — no change to the count-by-`deliverySlotId` logic. ✓
+- **Type consistency:** `storeId` is `string` (non-null) on both `Order` and `DeliverySlot` after Task 1 Step 5; `validateDeliverySlot(slotId, date, storeId)` — the only caller (`createCheckoutOrder`) is updated in the same task (Task 4 Step 3); the checkout `Slot` type carries `storeId`, fed by `listActiveDeliverySlots`' full-row return; all customer display consumers (`order.store.name`/`.address`) rely on the non-null relation; invoice/calendar use optional chaining defensively only where the include is added in the same task.
 - **Verification:** every task ends with `npx tsc --noEmit` + `npm run build` + manual steps (no test runner added, per the chosen approach).
