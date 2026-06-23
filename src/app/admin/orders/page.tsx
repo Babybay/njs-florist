@@ -4,6 +4,7 @@ import { OrderStatusBadge } from "@/components/admin/order-status-badge";
 import { Button, CardSection, EmptyState, inputClass } from "@/components/admin/ui";
 import { formatIDR, formatShortDate } from "@/lib/money";
 import { listOrders } from "@/server/services/order.service";
+import { listStores } from "@/server/services/store.service";
 import type { OrderStatus } from "@/types/order";
 
 export const metadata = {
@@ -34,6 +35,7 @@ export default async function AdminOrdersPage({
     q?: string;
     from?: string;
     to?: string;
+    store?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -41,14 +43,16 @@ export default async function AdminOrdersPage({
     ? (sp.status.split(",").filter((s) => ALL_STATUSES.includes(s as OrderStatus)) as OrderStatus[])
     : [];
 
+  const stores = await listStores();
   const orders = await listOrders({
     statuses: selectedStatuses.length ? selectedStatuses : undefined,
     q: sp.q?.trim() || undefined,
     fromDate: sp.from ? new Date(sp.from) : undefined,
     toDate: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,
+    storeId: sp.store || undefined,
   });
 
-  const hasFilters = sp.status || sp.q || sp.from || sp.to;
+  const hasFilters = sp.status || sp.q || sp.from || sp.to || sp.store;
 
   return (
     <>
@@ -62,13 +66,19 @@ export default async function AdminOrdersPage({
         method="get"
         className="mb-4 rounded-lg border border-stone-200/80 bg-white p-4"
       >
-        <div className="grid gap-2 md:grid-cols-[1.6fr_0.9fr_0.9fr_auto]">
+        <div className="grid gap-2 md:grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_auto]">
           <input
             name="q"
             defaultValue={sp.q ?? ""}
             placeholder="Cari nomor pesanan, nama, atau no HP..."
             className={inputClass()}
           />
+          <select name="store" defaultValue={sp.store ?? ""} className={inputClass()}>
+            <option value="">Semua toko</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
           <input
             name="from"
             type="date"
@@ -131,6 +141,9 @@ export default async function AdminOrdersPage({
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium text-stone-900">{order.orderNumber}</p>
                       <OrderStatusBadge status={order.status} />
+                      <span className="rounded bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+                        {order.store?.name ?? "—"}
+                      </span>
                     </div>
                     <p className="mt-0.5 truncate text-sm text-stone-600">
                       {order.items.map((item) => `${item.productName} · ${item.variantName}`).join(", ")}
