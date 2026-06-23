@@ -57,7 +57,7 @@ export async function buildCalendarFeed(): Promise<string> {
   const horizonEnd = startOfDay(new Date());
   horizonEnd.setDate(horizonEnd.getDate() + 120);
 
-  const [orders, slotRows, pickupAddress, businessName] = await Promise.all([
+  const [orders, slotRows, businessName] = await Promise.all([
     db.order.findMany({
       where: {
         status: { in: [...ACTIVE_PICKUP_STATUSES] },
@@ -75,6 +75,7 @@ export async function buildCalendarFeed(): Promise<string> {
         deliverySlotId: true,
         deliveryNotes: true,
         updatedAt: true,
+        store: { select: { address: true } },
         items: {
           select: { productName: true, variantName: true, quantity: true },
         },
@@ -84,7 +85,6 @@ export async function buildCalendarFeed(): Promise<string> {
     db.deliverySlot.findMany({
       select: { id: true, label: true, startTime: true, endTime: true },
     }),
-    getSetting(SETTING_KEYS.PICKUP_ADDRESS),
     getSetting(SETTING_KEYS.BUSINESS_NAME),
   ]);
 
@@ -133,7 +133,7 @@ export async function buildCalendarFeed(): Promise<string> {
         `SUMMARY:${escapeText(`Pickup ${order.orderNumber} — ${order.recipientName}`)}`,
       ),
     );
-    lines.push(foldLine(`LOCATION:${escapeText(pickupAddress)}`));
+    lines.push(foldLine(`LOCATION:${escapeText(order.store?.address ?? "")}`));
     lines.push(foldLine(`DESCRIPTION:${escapeText(description)}`));
     lines.push(`STATUS:${order.status === "OUT_FOR_DELIVERY" ? "TENTATIVE" : "CONFIRMED"}`);
     lines.push("END:VEVENT");
