@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createDeliverySlotAction } from "@/server/actions/delivery-slot.actions";
 
-export function SlotCreateForm() {
+export function SlotCreateForm({ stores }: { stores: { id: string; name: string }[] }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -24,8 +24,13 @@ export function SlotCreateForm() {
     <form
       id="slot-create-form"
       action={submit}
-      className="grid gap-3 rounded-lg border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr_auto]"
+      className="grid gap-3 rounded-lg border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_1.4fr_0.6fr_0.6fr_0.6fr_auto]"
     >
+      <select name="storeId" required defaultValue={stores[0]?.id ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500">
+        {stores.map((s) => (
+          <option key={s.id} value={s.id}>{s.name}</option>
+        ))}
+      </select>
       <input name="label" required placeholder="Label (mis. Sore 17-19)" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
       <input name="startTime" required placeholder="HH:MM" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
       <input name="endTime" required placeholder="HH:MM" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />

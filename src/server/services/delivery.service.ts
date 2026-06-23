@@ -57,7 +57,10 @@ export async function validateDeliverySlot(slotId: string, date: Date) {
 }
 
 export async function listAllDeliverySlots() {
-  return db.deliverySlot.findMany({ orderBy: { startTime: "asc" } });
+  return db.deliverySlot.findMany({
+    orderBy: [{ storeId: "asc" }, { startTime: "asc" }],
+    include: { store: { select: { id: true, name: true } } },
+  });
 }
 
 export type SlotUtilization = {

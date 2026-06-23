@@ -10,6 +10,7 @@ import {
 } from "@/server/services/delivery.service";
 import { listUpcomingOverrides } from "@/server/services/slot-override.service";
 import { getCalendarFeedUrl } from "@/server/services/calendar-feed.service";
+import { listStores } from "@/server/services/store.service";
 
 export const metadata = {
   title: "Admin Slot Pickup",
@@ -43,12 +44,13 @@ export default async function AdminDeliveryPage({
   const monthStart = new Date(y, m - 1, 1);
   const monthEnd = new Date(y, m, 0); // last day of month (day 0 of next month)
 
-  const [slots, monthUtilization, fortnightUtilization, upcomingOverrides, calendarFeed] = await Promise.all([
+  const [slots, monthUtilization, fortnightUtilization, upcomingOverrides, calendarFeed, stores] = await Promise.all([
     listAllDeliverySlots(),
     computeSlotUtilization({ from: monthStart, to: monthEnd }),
     computeSlotUtilization({ days: 14 }),
     listUpcomingOverrides(90),
     getCalendarFeedUrl(),
+    listStores(),
   ]);
 
   const utilBySlot = new Map(fortnightUtilization.map((u) => [u.slotId, u.days]));
@@ -130,21 +132,30 @@ export default async function AdminDeliveryPage({
 
       <CardSection title="Slot harian (template berulang)" description="Slot yang berlaku setiap hari (kecuali ditimpa override).">
         <div className="grid gap-3">
-          <SlotCreateForm />
-          {slots.map((slot) => (
-            <SlotRow
-              key={slot.id}
-              slot={{
-                id: slot.id,
-                label: slot.label,
-                startTime: slot.startTime,
-                endTime: slot.endTime,
-                capacity: slot.capacity,
-                isActive: slot.isActive,
-              }}
-              utilization={(utilBySlot.get(slot.id) ?? []).slice(0, 14)}
-            />
-          ))}
+          <SlotCreateForm stores={stores} />
+          {stores.map((store) => {
+            const storeSlots = slots.filter((s) => s.storeId === store.id);
+            if (storeSlots.length === 0) return null;
+            return (
+              <div key={store.id} className="grid gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">{store.name}</p>
+                {storeSlots.map((slot) => (
+                  <SlotRow
+                    key={slot.id}
+                    slot={{
+                      id: slot.id,
+                      label: slot.label,
+                      startTime: slot.startTime,
+                      endTime: slot.endTime,
+                      capacity: slot.capacity,
+                      isActive: slot.isActive,
+                    }}
+                    utilization={(utilBySlot.get(slot.id) ?? []).slice(0, 14)}
+                  />
+                ))}
+              </div>
+            );
+          })}
           {slots.length === 0 ? (
             <EmptyState icon="📅" title="Belum ada slot" description="Tambah slot dengan form di atas." />
           ) : null}
