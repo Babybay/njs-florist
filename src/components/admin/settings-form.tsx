@@ -49,12 +49,6 @@ export function SettingsForm({ settings }: SettingsFormProps) {
 
       <Section title="Pickup">
         <Field
-          label="Alamat pickup (ditampilkan ke customer)"
-          name="pickup_address"
-          defaultValue={settings.pickup_address}
-          hint="Alamat toko tempat customer mengambil pesanan. Ditampilkan di checkout dan email."
-        />
-        <Field
           label="Cutoff same-day (jam, 0–23)"
           name="same_day_cutoff_hour"
           type="number"
