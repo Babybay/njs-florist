@@ -20,6 +20,7 @@ async function main() {
       senderName: "Smoke",
       deliveryDate: new Date(Date.now() + 86_400_000),
       deliverySlotId: slot.id,
+      storeId: slot.storeId,
       deliveryAddress: "Smoke address",
     },
   });

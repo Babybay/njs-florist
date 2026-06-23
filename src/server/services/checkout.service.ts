@@ -6,6 +6,7 @@ import { createPaymentForOrder } from "@/server/services/payment.service";
 import { validateDeliverySlot } from "@/server/services/delivery.service";
 import { resolveDiscountCode } from "@/server/services/discount.service";
 import { sweepExpiredReservations } from "@/server/services/reservation.service";
+import { getStore } from "@/server/services/store.service";
 
 export async function createCheckoutOrder(input: unknown) {
   const parsed = checkoutInputSchema.parse(input);
@@ -34,7 +35,12 @@ export async function createCheckoutOrder(input: unknown) {
     throw new Error("Cart is empty.");
   }
 
-  await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date);
+  const store = await getStore(parsed.storeId);
+  if (!store || !store.isActive) {
+    throw new Error("Toko pickup tidak valid. Silakan pilih toko lain.");
+  }
+
+  await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date, parsed.storeId);
 
   const basePricing = await calculateCartPricing(cart);
   const discount = await resolveDiscountCode(parsed.discountCode, basePricing.subtotal);
@@ -54,6 +60,7 @@ export async function createCheckoutOrder(input: unknown) {
         data: {
           orderNumber,
           userId: parsed.userId,
+          storeId: parsed.storeId,
           status: "PENDING_PAYMENT",
           subtotal: pricing.subtotal,
           deliveryFee: pricing.deliveryFee,

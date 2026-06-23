@@ -11,7 +11,8 @@ import {
 import { listActiveDeliverySlots } from "@/server/services/catalog.service";
 import { loadActiveCartAction } from "@/server/actions/cart.actions";
 import { getDeliveryFee } from "@/server/services/pricing.service";
-import { getSetting, getSettingNumber, SETTING_KEYS } from "@/server/services/settings.service";
+import { getSettingNumber, SETTING_KEYS } from "@/server/services/settings.service";
+import { listActiveStores } from "@/server/services/store.service";
 
 export const metadata = {
   title: "Checkout",
@@ -28,12 +29,12 @@ function minDeliveryDate(cutoffHour: number) {
 }
 
 export default async function CheckoutPage() {
-  const [cart, slots, deliveryFee, cutoffHour, pickupAddress] = await Promise.all([
+  const [cart, slots, deliveryFee, cutoffHour, stores] = await Promise.all([
     loadActiveCartAction(),
     listActiveDeliverySlots(),
     getDeliveryFee(),
     getSettingNumber(SETTING_KEYS.SAME_DAY_CUTOFF_HOUR),
-    getSetting(SETTING_KEYS.PICKUP_ADDRESS),
+    listActiveStores(),
   ]);
 
   if (!cart || cart.items.length === 0) {
@@ -81,7 +82,7 @@ export default async function CheckoutPage() {
         <PageKicker>Checkout</PageKicker>
         <PageTitle>Detail pemesan & jadwal pickup</PageTitle>
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <CheckoutForm slots={slots} minDate={minDeliveryDate(cutoffHour)} pickupAddress={pickupAddress} />
+          <CheckoutForm slots={slots} minDate={minDeliveryDate(cutoffHour)} stores={stores} />
           <aside className="grid gap-6">
             <section className="rounded-md border border-stone-200 bg-white p-6">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-black/60">

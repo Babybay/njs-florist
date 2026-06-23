@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export const slotCreateSchema = z.object({
+  storeId: z.string().min(1, "Pilih toko."),
   label: z.string().trim().min(1).max(60),
   startTime: z.string().regex(timeRegex, "Format jam HH:MM"),
   endTime: z.string().regex(timeRegex, "Format jam HH:MM"),

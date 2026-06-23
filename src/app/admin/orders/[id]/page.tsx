@@ -26,6 +26,7 @@ export default async function AdminOrderDetailPage({
       reservations: { include: { inventoryItem: true } },
       statusHistory: { orderBy: { createdAt: "asc" } },
       user: { select: { id: true, email: true, name: true } },
+      store: true,
     },
   });
   if (!order) notFound();
@@ -181,6 +182,12 @@ export default async function AdminOrderDetailPage({
                 <dt className="text-xs text-stone-500">Jadwal pickup</dt>
                 <dd className="mt-0.5 font-medium text-stone-900">
                   {formatShortDate(order.deliveryDate.toISOString())} · slot {order.deliverySlotId}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-stone-500">Toko pickup</dt>
+                <dd className="mt-0.5 font-medium text-stone-900">
+                  {order.store?.name} — {order.store?.address}
                 </dd>
               </div>
               {order.deliveryNotes ? (

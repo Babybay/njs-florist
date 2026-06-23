@@ -16,6 +16,7 @@ function invalidateSlots() {
 function parseForm(formData: FormData) {
   return {
     id: formData.get("id")?.toString(),
+    storeId: formData.get("storeId")?.toString() ?? "",
     label: formData.get("label")?.toString() ?? "",
     startTime: formData.get("startTime")?.toString() ?? "",
     endTime: formData.get("endTime")?.toString() ?? "",
@@ -26,8 +27,8 @@ function parseForm(formData: FormData) {
 
 export async function createDeliverySlotAction(formData: FormData) {
   await requireAdmin();
-  const { label, startTime, endTime, capacity } = parseForm(formData);
-  await createDeliverySlot({ label, startTime, endTime, capacity });
+  const { storeId, label, startTime, endTime, capacity } = parseForm(formData);
+  await createDeliverySlot({ storeId, label, startTime, endTime, capacity });
   invalidateSlots();
   revalidatePath("/admin/delivery");
 }

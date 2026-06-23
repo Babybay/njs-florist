@@ -11,7 +11,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
 export async function findOrderByNumber(orderNumber: string) {
   return db.order.findUnique({
     where: { orderNumber },
-    include: { items: true, payments: true, reservations: true },
+    include: { items: true, payments: true, reservations: true, store: true },
   });
 }
 
@@ -22,10 +22,12 @@ export async function listOrders(filter?: {
   q?: string;
   fromDate?: Date;
   toDate?: Date;
+  storeId?: string;
 }) {
   const where: Record<string, unknown> = {};
   if (filter?.statuses && filter.statuses.length) where.status = { in: filter.statuses };
   if (filter?.userId) where.userId = filter.userId;
+  if (filter?.storeId) where.storeId = filter.storeId;
   if (filter?.q) {
     where.OR = [
       { orderNumber: { contains: filter.q, mode: "insensitive" } },
@@ -42,7 +44,7 @@ export async function listOrders(filter?: {
 
   return db.order.findMany({
     where: Object.keys(where).length ? where : undefined,
-    include: { items: true, payments: true },
+    include: { items: true, payments: true, store: true },
     orderBy: { createdAt: "desc" },
     take: filter?.limit,
   });

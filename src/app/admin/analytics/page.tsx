@@ -11,6 +11,8 @@ import {
   totalRevenueAllTime,
 } from "@/server/services/analytics.service";
 import { listLowStockItems } from "@/server/services/inventory.service";
+import { listStores } from "@/server/services/store.service";
+import { db } from "@/lib/db";
 
 export const metadata = {
   title: "Admin Analytics",
@@ -34,14 +36,30 @@ export default async function AdminAnalyticsPage({
   const sp = await searchParams;
   const range = parseRange(sp.range);
 
-  const [revenue, summary, top, conversion, allTime, lowStock] = await Promise.all([
+  const [revenue, summary, top, conversion, allTime, lowStock, stores, byStore] = await Promise.all([
     dailyRevenue(range),
     revenueSummary(range),
     topVariants(10),
     conversionStats(),
     totalRevenueAllTime(),
     listLowStockItems(),
+    listStores(),
+    db.order.groupBy({
+      by: ["storeId"],
+      where: {
+        status: { in: ["PAID", "PREPARING", "READY_FOR_DELIVERY", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED"] },
+      },
+      _count: { _all: true },
+      _sum: { total: true },
+    }),
   ]);
+
+  const storeNameById = new Map(stores.map((s) => [s.id, s.name]));
+  const storeRows = byStore.map((row) => ({
+    name: storeNameById.get(row.storeId) ?? "—",
+    orders: row._count._all,
+    revenue: row._sum.total ?? 0,
+  }));
 
   const delta = summary.deltaPct;
   const deltaUp = delta !== null && delta >= 0;
@@ -162,6 +180,23 @@ export default async function AdminAnalyticsPage({
 
       <section className="mt-6">
         <DailyLedger data={revenue} />
+      </section>
+
+      <section className="mt-6 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-stone-950">Per toko</h2>
+        <p className="mt-1 text-sm text-stone-600">Jumlah pesanan dan revenue terbayar per lokasi pickup (all-time).</p>
+        {storeRows.length === 0 ? (
+          <p className="mt-4 text-sm text-stone-500">Belum ada data.</p>
+        ) : (
+          <ul className="mt-4 grid gap-2 text-sm">
+            {storeRows.map((r) => (
+              <li key={r.name} className="flex items-center justify-between border-b border-stone-100 pb-2 last:border-b-0">
+                <span className="font-semibold text-stone-950">{r.name}</span>
+                <span className="text-stone-600">{r.orders} pesanan · {formatIDR(r.revenue)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="mt-6 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">

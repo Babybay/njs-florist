@@ -3,6 +3,7 @@ import { z } from "zod";
 export const checkoutInputSchema = z.object({
   cartId: z.string().min(1),
   userId: z.string().optional(),
+  storeId: z.string().min(1),
   recipient: z.object({
     name: z.string().min(1),
     phone: z.string().min(1),

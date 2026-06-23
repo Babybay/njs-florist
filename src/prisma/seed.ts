@@ -298,6 +298,30 @@ const slots: SlotSeed[] = [
 ];
 
 async function main() {
+  console.log("Seeding stores...");
+  await db.store.upsert({
+    where: { id: "store_seed_1" },
+    update: {},
+    create: {
+      id: "store_seed_1",
+      name: "njs Florist — Store 1",
+      address: "Jl. Sunset Road No. 88, Kuta, Bali",
+      sortOrder: 0,
+      isActive: true,
+    },
+  });
+  await db.store.upsert({
+    where: { id: "store_seed_2" },
+    update: {},
+    create: {
+      id: "store_seed_2",
+      name: "njs Florist — Store 2",
+      address: "Alamat toko kedua — ubah di Pengaturan",
+      sortOrder: 1,
+      isActive: true,
+    },
+  });
+
   console.log("Seeding categories...");
   const categoryByslug = new Map<string, string>();
   for (const c of categories) {
@@ -447,7 +471,7 @@ async function main() {
         data: { capacity: s.capacity, startTime: s.startTime, endTime: s.endTime, isActive: true },
       });
     } else {
-      await db.deliverySlot.create({ data: { ...s, isActive: true } });
+      await db.deliverySlot.create({ data: { ...s, storeId: "store_seed_1", isActive: true } });
     }
   }
 

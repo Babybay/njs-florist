@@ -25,6 +25,7 @@ export default async function PublicTrackPage({
     where: { orderNumber },
     include: {
       items: true,
+      store: true,
       statusHistory: { orderBy: { createdAt: "asc" } },
     },
   });
@@ -84,6 +85,11 @@ export default async function PublicTrackPage({
                 {formatPickupDate(order.deliveryDate)}
               </dd>
               <dd className="text-xs text-black/65">{slot}</dd>
+            </div>
+            <div>
+              <dt className="text-black/55">Toko pickup</dt>
+              <dd className="mt-1 font-semibold text-black">{order.store.name}</dd>
+              <dd className="text-xs text-black/65">{order.store.address}</dd>
             </div>
             <div>
               <dt className="text-black/55">Total</dt>
