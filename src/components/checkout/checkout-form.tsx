@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   type CheckoutFormState,
   submitCheckoutAction,
@@ -11,6 +11,14 @@ type Slot = {
   id: string;
   label: string;
   capacity: number;
+  storeId: string;
+};
+
+type Store = {
+  id: string;
+  name: string;
+  address: string;
+  phone: string | null;
 };
 
 const initialState: CheckoutFormState = {};
@@ -21,20 +29,39 @@ const fieldClass =
 export function CheckoutForm({
   slots,
   minDate,
-  pickupAddress,
+  stores,
 }: {
   slots: Slot[];
   minDate: string;
-  pickupAddress: string;
+  stores: Store[];
 }) {
   const [state, formAction, pending] = useActionState(submitCheckoutAction, initialState);
+  const [selectedStoreId, setSelectedStoreId] = useState(stores[0]?.id ?? "");
+  const storeSlots = slots.filter((slot) => slot.storeId === selectedStoreId);
 
   return (
     <form action={formAction} className="grid gap-5 rounded-md border border-stone-200 bg-white p-6">
-      <div className="rounded-md border border-black/15 bg-[color:var(--blush)] px-4 py-3 text-sm text-black">
-        <p className="font-semibold uppercase tracking-[0.14em]">Pickup di toko</p>
-        <p className="mt-1 text-black/80">{pickupAddress}</p>
-      </div>
+      <fieldset className="grid gap-2 rounded-md border border-black/15 bg-[color:var(--blush)] px-4 py-3 text-sm text-black">
+        <legend className="font-semibold uppercase tracking-[0.14em]">Pilih toko pickup *</legend>
+        {stores.map((store) => (
+          <label key={store.id} className="flex cursor-pointer gap-3 rounded-md border border-black/10 bg-white/70 p-3 has-[:checked]:border-black has-[:checked]:bg-white">
+            <input
+              type="radio"
+              name="storeId"
+              value={store.id}
+              required
+              checked={selectedStoreId === store.id}
+              onChange={() => setSelectedStoreId(store.id)}
+              className="mt-1 h-4 w-4 accent-black"
+            />
+            <span className="grid gap-0.5">
+              <span className="font-semibold">{store.name}</span>
+              <span className="text-black/75">{store.address}</span>
+              {store.phone ? <span className="text-black/55">{store.phone}</span> : null}
+            </span>
+          </label>
+        ))}
+      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2 text-sm font-semibold text-black">
@@ -75,7 +102,7 @@ export function CheckoutForm({
           Slot pickup *
           <select name="slotId" required className={fieldClass}>
             <option value="">Pilih slot</option>
-            {slots.map((slot) => (
+            {storeSlots.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.label}
               </option>

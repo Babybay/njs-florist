@@ -16,9 +16,12 @@ function dateOnly(d: Date) {
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
-export async function validateDeliverySlot(slotId: string, date: Date) {
+export async function validateDeliverySlot(slotId: string, date: Date, storeId: string) {
   const slot = await db.deliverySlot.findUnique({ where: { id: slotId } });
   if (!slot) throw new Error("Delivery slot is not available.");
+  if (slot.storeId !== storeId) {
+    throw new Error("Slot pickup tidak tersedia untuk toko yang dipilih.");
+  }
 
   const override = await db.deliverySlotOverride.findUnique({
     where: { slotId_date: { slotId, date: dateOnly(date) } },

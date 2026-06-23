@@ -30,10 +30,11 @@ export async function submitCheckoutAction(
   const notes = String(formData.get("notes") ?? "").trim() || undefined;
   const deliveryDateRaw = String(formData.get("deliveryDate") ?? "");
   const slotId = String(formData.get("slotId") ?? "");
+  const storeId = String(formData.get("storeId") ?? "");
   const discountCode = String(formData.get("discountCode") ?? "").trim() || undefined;
 
-  if (!recipientName || !recipientPhone || !senderName || !deliveryDateRaw || !slotId) {
-    return { error: "Mohon lengkapi semua field wajib." };
+  if (!recipientName || !recipientPhone || !senderName || !deliveryDateRaw || !slotId || !storeId) {
+    return { error: "Mohon lengkapi semua field wajib (termasuk toko pickup)." };
   }
 
   const deliveryDate = new Date(`${deliveryDateRaw}T09:00:00`);
@@ -48,6 +49,7 @@ export async function submitCheckoutAction(
     result = await createCheckoutOrder({
       cartId: cart.id,
       userId: sessionUser?.id,
+      storeId,
       recipient: { name: recipientName, phone: recipientPhone, senderName, isAnonymous, cardMessage },
       delivery: { date: deliveryDate, slotId, address: "", notes },
       discountCode,
