@@ -10,6 +10,7 @@ export async function sendOrderConfirmationEmail(orderId: string) {
     include: {
       user: true,
       items: true,
+      store: true,
     },
   });
 
@@ -31,7 +32,8 @@ export async function sendOrderConfirmationEmail(orderId: string) {
       <p>Pesanan <strong>${order.orderNumber}</strong> sudah lunas. Berikut ringkasannya:</p>
       <ul>${itemsHtml}</ul>
       <p>Total: <strong>${formatIDR(order.total)}</strong></p>
-      <p>Pesanan akan disiapkan oleh tim florist sesuai slot pickup terpilih. Datang ke toko dengan menyebut nomor pesanan.</p>
+      <p>Pesanan akan disiapkan oleh tim florist sesuai slot pickup terpilih.</p>
+      <p>Datang ke <strong>${order.store.name}</strong> (${order.store.address}) dengan menyebut nomor pesanan ${order.orderNumber}.</p>
     `,
   });
 }

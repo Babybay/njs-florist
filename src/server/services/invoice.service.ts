@@ -116,6 +116,7 @@ export async function getInvoice(orderNumber: string) {
         },
         payments: { orderBy: { createdAt: "desc" } },
         user: { select: { email: true, name: true, phone: true } },
+        store: true,
       },
     }),
   ]);

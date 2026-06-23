@@ -40,7 +40,8 @@ export default async function AdminInvoiceDetailPage({
   const businessName = settings.business_name || "njs Florist";
   const businessPhone = settings.business_phone || "";
   const businessEmail = settings.business_email || "";
-  const pickupAddress = settings.pickup_address || "";
+  const pickupAddress = order.store?.address || "";
+  const pickupStoreName = order.store?.name || "";
   const latestPayments = order.payments.slice(0, 3);
 
   return (
@@ -100,7 +101,8 @@ export default async function AdminInvoiceDetailPage({
             <div className="mt-1 text-xs leading-5 text-stone-600">
               {businessEmail ? <p>{businessEmail}</p> : null}
               {businessPhone ? <p>{businessPhone}</p> : null}
-              {pickupAddress ? <p className="mt-1">{pickupAddress}</p> : null}
+              {pickupStoreName ? <p className="mt-1 font-medium text-stone-700">{pickupStoreName}</p> : null}
+              {pickupAddress ? <p>{pickupAddress}</p> : null}
             </div>
           </div>
         </header>
