@@ -9,8 +9,10 @@ import {
   PageTitle,
 } from "@/components/ui/store-ui";
 import { loadActiveCartAction } from "@/server/actions/cart.actions";
-import { removeCartItemAction, updateCartItemQuantityAction } from "@/server/actions/cart.actions";
+import { removeCartItemAction } from "@/server/actions/cart.actions";
+import { CartQuantity } from "@/components/cart/cart-quantity";
 import { getDeliveryFee } from "@/server/services/pricing.service";
+import { calculateVariantAvailabilityMap } from "@/server/services/stock.service";
 
 export const metadata = {
   title: "Keranjang",
@@ -54,7 +56,10 @@ export default async function CartPage() {
     return { item, unit, lineProduct, lineAddons, lineTotal };
   });
 
-  const deliveryFee = await getDeliveryFee();
+  const [deliveryFee, availabilityMap] = await Promise.all([
+    getDeliveryFee(),
+    calculateVariantAvailabilityMap(cart.items.map((item) => item.variantId)),
+  ]);
   const total = subtotal + deliveryFee;
 
   return (
@@ -106,27 +111,13 @@ export default async function CartPage() {
                           “{item.cardMessage}”
                         </p>
                       ) : null}
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <form action={updateCartItemQuantityAction} className="flex items-center gap-2">
-                          <input type="hidden" name="itemId" value={item.id} />
-                          <input type="hidden" name="cartId" value={cart.id} />
-                          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-black/60">
-                            Qty
-                          </label>
-                          <input
-                            type="number"
-                            name="quantity"
-                            min={1}
-                            defaultValue={item.quantity}
-                            className="w-16 rounded-md border border-stone-300 px-2 py-1 text-sm outline-none focus:border-black"
-                          />
-                          <button
-                            type="submit"
-                            className="rounded-full border border-stone-300 px-3 py-1 text-xs font-semibold text-black transition hover:border-black"
-                          >
-                            Update
-                          </button>
-                        </form>
+                      <div className="mt-3 flex flex-wrap items-center gap-4">
+                        <CartQuantity
+                          itemId={item.id}
+                          cartId={cart.id}
+                          quantity={item.quantity}
+                          max={availabilityMap.get(item.variantId) ?? 0}
+                        />
                         <form action={removeCartItemAction}>
                           <input type="hidden" name="itemId" value={item.id} />
                           <input type="hidden" name="cartId" value={cart.id} />

@@ -22,12 +22,18 @@ export default function TrackLandingPage() {
           method="get"
           className="mt-6 flex flex-col gap-3 sm:flex-row"
         >
-          <input
-            name="orderNumber"
-            required
-            placeholder="BLM-20260516-XXXX"
-            className={inputClass("flex-1")}
-          />
+          <div className="flex-1">
+            <label htmlFor="orderNumber" className="sr-only">
+              Nomor pesanan
+            </label>
+            <input
+              id="orderNumber"
+              name="orderNumber"
+              required
+              placeholder="BLM-20260516-XXXX"
+              className={inputClass("w-full")}
+            />
+          </div>
           <Button type="submit">Lacak</Button>
         </form>
         <p className="mt-6 text-sm text-black/60">

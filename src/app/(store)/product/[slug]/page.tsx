@@ -13,6 +13,7 @@ import {
   listProductsByCategorySlug,
 } from "@/server/services/catalog.service";
 import { calculateVariantAvailabilityMap } from "@/server/services/stock.service";
+import { getSettingNumber, SETTING_KEYS } from "@/server/services/settings.service";
 
 export const dynamic = "force-dynamic";
 
@@ -45,9 +46,10 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [availabilityMap, categoryProducts] = await Promise.all([
+  const [availabilityMap, categoryProducts, cutoffHour] = await Promise.all([
     calculateVariantAvailabilityMap(product.variants.map((v) => v.id)),
     listProductsByCategorySlug(product.category.slug),
+    getSettingNumber(SETTING_KEYS.SAME_DAY_CUTOFF_HOUR),
   ]);
 
   const variantAvailabilities = product.variants.map((variant) => ({
@@ -120,7 +122,7 @@ export default async function ProductPage({
                 </span>
                 <span>
                   Dirangkai dengan tangan di studio kami di Kuta. Pesan
-                  sebelum <strong className="font-semibold text-[color:var(--ink)]">14.00 WITA</strong> untuk
+                  sebelum <strong className="font-semibold text-[color:var(--ink)]">{cutoffHour}.00 WITA</strong> untuk
                   pickup hari ini.
                 </span>
               </div>
