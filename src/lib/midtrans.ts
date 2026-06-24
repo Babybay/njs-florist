@@ -160,12 +160,3 @@ export async function createMidtransSnapTransaction(input: SnapTransactionInput)
     redirectUrl: json.redirect_url,
   };
 }
-
-/** @deprecated use createMidtransSnapTransaction */
-export async function createMidtransPayment(order: { orderNumber: string; total: number }) {
-  return createMidtransSnapTransaction({
-    orderNumber: order.orderNumber,
-    total: order.total,
-    items: [{ id: "order", price: order.total, quantity: 1, name: `Order ${order.orderNumber}` }],
-  });
-}

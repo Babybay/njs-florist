@@ -64,24 +64,4 @@ export const getPaidRevenueTotal = unstable_cache(
   { tags: [DASHBOARD_TAGS.stats], revalidate: 60 },
 );
 
-/**
- * Low stock items. Raw SQL so we can compare column-vs-column
- * (currentQty <= reorderLevel) without fetching every item.
- * Dedupe via React.cache for the stat + section.
- */
-export const getLowStockItems = cache(async () => {
-  return db.$queryRaw<
-    Array<{
-      id: string;
-      name: string;
-      unit: string;
-      currentQty: number;
-      reorderLevel: number;
-    }>
-  >`
-    SELECT id, name, unit, "currentQty", "reorderLevel"
-    FROM "InventoryItem"
-    WHERE "reorderLevel" > 0 AND "currentQty" <= "reorderLevel"
-    ORDER BY name ASC
-  `;
-});
+// Low stock lives in inventory.service.ts (listLowStockItems) — single source.

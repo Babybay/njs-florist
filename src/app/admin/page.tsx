@@ -14,10 +14,10 @@ import { formatIDR, formatShortDate } from "@/lib/money";
 import { dailyRevenue } from "@/server/services/analytics.service";
 import {
   getActiveProductCount,
-  getLowStockItems,
   getPaidRevenueTotal,
   getRecentOrders,
 } from "@/server/services/dashboard.service";
+import { listLowStockItems } from "@/server/services/inventory.service";
 
 export const metadata = {
   title: "Admin",
@@ -121,7 +121,7 @@ async function RevenueStat() {
 }
 
 async function LowStockStat() {
-  const lowStock = await getLowStockItems();
+  const lowStock = await listLowStockItems();
   return (
     <Stat
       label="Bahan low stock"
@@ -233,7 +233,7 @@ async function RecentOrders() {
 }
 
 async function LowStockSection() {
-  const lowStock = await getLowStockItems();
+  const lowStock = await listLowStockItems();
   if (lowStock.length === 0) return null;
   return (
     <CardSection

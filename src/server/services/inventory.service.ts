@@ -1,9 +1,9 @@
+import { cache } from "react";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   inventoryItemCreateSchema,
   inventoryItemUpdateSchema,
-  stockMovementSchema,
 } from "@/server/validations/inventory.validation";
 import { sendLowStockAlert } from "@/server/services/notification.service";
 
@@ -110,25 +110,25 @@ export async function updateInventoryItem(input: unknown) {
   return db.inventoryItem.update({ where: { id }, data: rest });
 }
 
-export async function listLowStockItems() {
-  const items = await db.inventoryItem.findMany({ orderBy: { name: "asc" } });
-  return items.filter((item) => item.reorderLevel > 0 && item.currentQty <= item.reorderLevel);
-}
-
-/** @deprecated use applyStockMovement instead. Kept for callers that already validate themselves. */
-export async function createStockMovement(input: StockMovementInput) {
-  const parsed = stockMovementSchema.parse({
-    inventoryItemId: input.inventoryItemId,
-    type: input.type === "RESERVED" || input.type === "RELEASED" ? "IN" : input.type,
-    quantity: input.quantity,
-    reason: input.reason,
-  });
-  return applyStockMovement({
-    inventoryItemId: parsed.inventoryItemId,
-    type: input.type,
-    quantity: parsed.quantity,
-    reason: parsed.reason,
-    orderId: input.orderId,
-    createdById: input.createdById,
-  });
-}
+/**
+ * Items at or below their reorder level. Raw SQL so the comparison is
+ * column-vs-column (currentQty <= reorderLevel) and only matching rows are
+ * fetched. Wrapped in React.cache to dedupe within a single request (e.g. the
+ * dashboard stat + section). Single source of truth for "low stock".
+ */
+export const listLowStockItems = cache(async () => {
+  return db.$queryRaw<
+    Array<{
+      id: string;
+      name: string;
+      unit: string;
+      currentQty: number;
+      reorderLevel: number;
+    }>
+  >`
+    SELECT id, name, unit, "currentQty", "reorderLevel"
+    FROM "InventoryItem"
+    WHERE "reorderLevel" > 0 AND "currentQty" <= "reorderLevel"
+    ORDER BY name ASC
+  `;
+});
