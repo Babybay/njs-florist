@@ -5,6 +5,8 @@ import { Button, CardSection, EmptyState, inputClass } from "@/components/admin/
 import { formatIDR, formatShortDate } from "@/lib/money";
 import { listOrders } from "@/server/services/order.service";
 import { listStores } from "@/server/services/store.service";
+import { slotLabelsFor } from "@/server/services/slot-display.service";
+import { statusLabel } from "@/lib/order-display";
 import type { OrderStatus } from "@/types/order";
 
 export const metadata = {
@@ -52,6 +54,7 @@ export default async function AdminOrdersPage({
     storeId: sp.store || undefined,
   });
 
+  const slotLabels = await slotLabelsFor(orders.map((o) => o.deliverySlotId));
   const hasFilters = sp.status || sp.q || sp.from || sp.to || sp.store;
 
   return (
@@ -107,7 +110,7 @@ export default async function AdminOrdersPage({
                 }`}
               >
                 <input type="checkbox" name="status" value={s} defaultChecked={checked} className="hidden" />
-                {s}
+                {statusLabel(s)}
               </label>
             );
           })}
@@ -149,7 +152,7 @@ export default async function AdminOrdersPage({
                       {order.items.map((item) => `${item.productName} · ${item.variantName}`).join(", ")}
                     </p>
                     <p className="mt-0.5 text-xs text-stone-500">
-                      {order.recipientName} · pickup {formatShortDate(order.deliveryDate.toISOString())} · slot {order.deliverySlotId}
+                      {order.recipientName} · pickup {formatShortDate(order.deliveryDate.toISOString())} · {slotLabels.get(order.deliverySlotId) ?? "slot —"}
                     </p>
                   </div>
                   <span className="shrink-0 text-sm font-medium text-stone-900">{formatIDR(order.total)}</span>

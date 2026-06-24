@@ -1,35 +1,10 @@
-import Image from "next/image";
-import Link from "next/link";
-import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { BackButton } from "@/components/admin/back-button";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#fbfbfa] text-stone-900">
-      <aside className="border-b border-stone-200 bg-stone-50/80 backdrop-blur lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="px-4 py-4 lg:shrink-0">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-stone-200/50"
-          >
-            <Image
-              src="/logo.png"
-              alt="njs florist"
-              width={28}
-              height={28}
-              priority
-              className="h-7 w-7 rounded-md object-cover"
-            />
-            <div className="leading-tight">
-              <p className="text-sm font-semibold text-stone-900">njs Florist</p>
-              <p className="text-[11px] text-stone-500">Workspace admin</p>
-            </div>
-          </Link>
-        </div>
-        <div className="lg:flex-1 lg:overflow-y-auto">
-          <AdminNav />
-        </div>
-      </aside>
+      <AdminSidebar />
       <main className="px-4 py-6 sm:px-6 lg:ml-64 lg:px-12 lg:py-10">
         <div className="mx-auto max-w-5xl">
           <div className="mb-2">

@@ -8,6 +8,7 @@ import { CardSection, tagClass } from "@/components/admin/ui";
 import { StatusTimeline } from "@/components/order/status-timeline";
 import { RefreshPaymentButton } from "@/components/order/refresh-payment-button";
 import { formatDateTime, formatIDR, formatShortDate } from "@/lib/money";
+import { slotLabel } from "@/server/services/slot-display.service";
 import type { OrderStatus } from "@/types/order";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +31,8 @@ export default async function AdminOrderDetailPage({
     },
   });
   if (!order) notFound();
+
+  const pickupSlot = await slotLabel(order.deliverySlotId);
 
   return (
     <>
@@ -181,7 +184,7 @@ export default async function AdminOrderDetailPage({
               <div>
                 <dt className="text-xs text-stone-500">Jadwal pickup</dt>
                 <dd className="mt-0.5 font-medium text-stone-900">
-                  {formatShortDate(order.deliveryDate.toISOString())} · slot {order.deliverySlotId}
+                  {formatShortDate(order.deliveryDate.toISOString())} · {pickupSlot}
                 </dd>
               </div>
               <div>
