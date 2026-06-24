@@ -304,8 +304,8 @@ async function main() {
     update: {},
     create: {
       id: "store_seed_1",
-      name: "njs Florist — Store 1",
-      address: "Jl. Sunset Road No. 88, Kuta, Bali",
+      name: "njs Florist — Denpasar",
+      address: "Denpasar, Bali — ubah alamat lengkap di Pengaturan",
       sortOrder: 0,
       isActive: true,
     },
@@ -315,8 +315,8 @@ async function main() {
     update: {},
     create: {
       id: "store_seed_2",
-      name: "njs Florist — Store 2",
-      address: "Alamat toko kedua — ubah di Pengaturan",
+      name: "njs Florist — Dalung",
+      address: "Dalung, Bali — ubah alamat lengkap di Pengaturan",
       sortOrder: 1,
       isActive: true,
     },
