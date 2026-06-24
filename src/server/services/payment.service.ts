@@ -43,6 +43,12 @@ export async function createPaymentForOrder(order: { id: string; orderNumber: st
   });
   if (!full) throw new Error("Order not found when creating payment.");
 
+  // Only orders still awaiting payment may start a Snap transaction. Blocks
+  // creating a fresh charge for an order that is already paid, cancelled, or expired.
+  if (full.status !== "PENDING_PAYMENT") {
+    throw new Error(`Order ${full.orderNumber} is not awaiting payment (status: ${full.status}).`);
+  }
+
   const items: SnapItemDetail[] = [];
   for (const item of full.items) {
     items.push({

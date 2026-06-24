@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/server/services/auth.service";
 import { createStore, updateStore, setStoreActive } from "@/server/services/store.service";
 
 function read(formData: FormData) {
@@ -15,16 +16,19 @@ function read(formData: FormData) {
 }
 
 export async function createStoreAction(formData: FormData) {
+  await requireAdmin();
   await createStore(read(formData));
   revalidatePath("/admin/settings");
 }
 
 export async function updateStoreAction(id: string, formData: FormData) {
+  await requireAdmin();
   await updateStore(id, read(formData));
   revalidatePath("/admin/settings");
 }
 
 export async function toggleStoreActiveAction(id: string, isActive: boolean) {
+  await requireAdmin();
   await setStoreActive(id, isActive);
   revalidatePath("/admin/settings");
 }

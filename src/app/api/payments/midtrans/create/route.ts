@@ -19,6 +19,12 @@ export async function POST(request: Request) {
   if (!order) {
     return Response.json({ error: "Order not found" }, { status: 404 });
   }
+  if (order.status !== "PENDING_PAYMENT") {
+    return Response.json(
+      { error: "Order is no longer awaiting payment." },
+      { status: 409 },
+    );
+  }
 
   const payment = await createPaymentForOrder({
     id: order.id,
