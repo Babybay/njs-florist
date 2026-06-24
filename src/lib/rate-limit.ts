@@ -1,6 +1,5 @@
-type Bucket = { count: number; resetAt: number };
-
-const store = new Map<string, Bucket>();
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 export type RateLimitResult = {
   ok: boolean;
@@ -8,11 +7,15 @@ export type RateLimitResult = {
   resetAt: number;
 };
 
-/**
- * In-memory fixed-window rate limiter. Sufficient for single-region single-instance
- * Next deployments. Swap to Upstash/Redis for multi-instance.
- */
-export function rateLimit(
+// ── In-memory fallback ──────────────────────────────────────────────────────
+// Fixed-window limiter kept for local dev / single-instance deployments where
+// Upstash env vars are absent. NOTE: state is per-process, so it does NOT hold
+// across multiple serverless instances — that is exactly why production uses
+// Upstash below.
+type Bucket = { count: number; resetAt: number };
+const store = new Map<string, Bucket>();
+
+function memoryLimit(
   key: string,
   options: { limit: number; windowMs: number },
 ): RateLimitResult {
@@ -35,6 +38,53 @@ export function rateLimit(
     remaining: options.limit - existing.count,
     resetAt: existing.resetAt,
   };
+}
+
+// ── Upstash (distributed) ───────────────────────────────────────────────────
+// Active whenever UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN are set
+// (auto-injected by the Vercel ↔ Upstash Marketplace integration). Works across
+// all serverless instances, so the limit is truly global.
+const hasUpstash = Boolean(
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
+);
+const redis = hasUpstash ? Redis.fromEnv() : null;
+
+// Block repeat offenders without a Redis round-trip. Must live at module scope.
+const ephemeralCache = new Map<string, number>();
+
+// Reuse one Ratelimit instance per (limit, window) config.
+const limiters = new Map<string, Ratelimit>();
+
+function getLimiter(limit: number, windowMs: number): Ratelimit {
+  const cacheKey = `${limit}:${windowMs}`;
+  let rl = limiters.get(cacheKey);
+  if (!rl) {
+    rl = new Ratelimit({
+      redis: redis!,
+      limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
+      ephemeralCache,
+      prefix: "njs-rl",
+    });
+    limiters.set(cacheKey, rl);
+  }
+  return rl;
+}
+
+/**
+ * Rate limit `key` to `limit` requests per `windowMs`. Uses Upstash Redis when
+ * configured (distributed, production-safe), otherwise an in-memory fallback.
+ */
+export async function rateLimit(
+  key: string,
+  options: { limit: number; windowMs: number },
+): Promise<RateLimitResult> {
+  if (!redis) return memoryLimit(key, options);
+
+  const { success, remaining, reset } = await getLimiter(
+    options.limit,
+    options.windowMs,
+  ).limit(key);
+  return { ok: success, remaining, resetAt: reset };
 }
 
 export function clientKey(request: Request, scope: string): string {

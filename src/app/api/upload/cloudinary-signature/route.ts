@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const limit = rateLimit(clientKey(request, "cloudinary-sign"), {
+  const limit = await rateLimit(clientKey(request, "cloudinary-sign"), {
     limit: 30,
     windowMs: 60_000,
   });

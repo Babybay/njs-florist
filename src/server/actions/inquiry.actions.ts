@@ -12,7 +12,7 @@ import {
 export async function submitInquiryAction(formData: FormData) {
   const h = await headers();
   const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown";
-  const limit = rateLimit(`inquiry:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  const limit = await rateLimit(`inquiry:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
   if (!limit.ok) {
     throw new Error("Terlalu banyak permintaan dari IP ini. Coba lagi dalam 1 jam.");
   }

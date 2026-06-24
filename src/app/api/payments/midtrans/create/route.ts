@@ -3,7 +3,7 @@ import { clientKey, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createPaymentForOrder } from "@/server/services/payment.service";
 
 export async function POST(request: Request) {
-  const limit = rateLimit(clientKey(request, "midtrans-create"), {
+  const limit = await rateLimit(clientKey(request, "midtrans-create"), {
     limit: 10,
     windowMs: 60_000,
   });

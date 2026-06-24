@@ -16,7 +16,7 @@ export async function subscribeNewsletterAction(
 ): Promise<NewsletterState> {
   const h = await headers();
   const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || "unknown";
-  const limit = rateLimit(`newsletter:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+  const limit = await rateLimit(`newsletter:${ip}`, { limit: 5, windowMs: 60 * 60 * 1000 });
   if (!limit.ok) {
     return { ok: false, message: "Terlalu banyak permintaan. Coba lagi nanti." };
   }
