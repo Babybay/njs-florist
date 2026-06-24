@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rate-limit";
+import { subscribeToNewsletter } from "@/server/services/newsletter.service";
 
 const schema = z.object({
   email: z.string().email("Email tidak valid"),
@@ -26,8 +27,11 @@ export async function subscribeNewsletterAction(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Email tidak valid" };
   }
 
-  // TODO: wire to Resend audiences / mailing list. For now, log only.
-  console.log(`[newsletter] subscribe ${parsed.data.email}`);
+  try {
+    await subscribeToNewsletter(parsed.data.email);
+  } catch {
+    return { ok: false, message: "Gagal menyimpan. Coba lagi sebentar lagi." };
+  }
 
   return { ok: true, message: "Terima kasih! Kamu akan jadi yang pertama tahu koleksi baru." };
 }
