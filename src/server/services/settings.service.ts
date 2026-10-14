@@ -1,5 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+
+/** Invalidate with `updateTag(SETTINGS_TAG)` after any settings write. */
+export const SETTINGS_TAG = "settings";
 
 export const SETTING_KEYS = {
   DELIVERY_FEE: "delivery_fee",
@@ -22,10 +26,10 @@ export const SETTING_KEYS = {
 export const DEFAULT_SETTINGS: Record<string, string> = {
   [SETTING_KEYS.DELIVERY_FEE]: "0",
   [SETTING_KEYS.SAME_DAY_CUTOFF_HOUR]: "14",
-  [SETTING_KEYS.BUSINESS_NAME]: "njs Florist",
+  [SETTING_KEYS.BUSINESS_NAME]: "NJS Projects",
   [SETTING_KEYS.BUSINESS_PHONE]: "+62 812-0000-0000",
-  [SETTING_KEYS.BUSINESS_EMAIL]: "halo@njsflorist.id",
-  [SETTING_KEYS.PICKUP_ADDRESS]: "Jl. Sunset Road No. 88, Kuta, Bali",
+  [SETTING_KEYS.BUSINESS_EMAIL]: "",
+  [SETTING_KEYS.PICKUP_ADDRESS]: "Pilih studio Denpasar atau Dalung saat checkout",
   [SETTING_KEYS.HOME_HERO_IMAGE]:
     "https://images.unsplash.com/photo-1561181286-d3fee7d55364?auto=format&fit=crop&w=1800&q=85",
   [SETTING_KEYS.HOME_HERO_CAPTION]: "Peony & Garden Rose",
@@ -41,22 +45,26 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
     "Rangkaian bunga preserved dalam glass box yang bertahan hingga setahun. Cocok untuk hadiah anniversary, valentine, atau dekorasi rumah.",
 };
 
+export const getAllSettings = unstable_cache(
+  async (): Promise<Record<string, string>> => {
+    const rows = await db.appSetting.findMany();
+    const map: Record<string, string> = { ...DEFAULT_SETTINGS };
+    for (const r of rows) map[r.key] = r.value;
+    return map;
+  },
+  ["app-settings"],
+  { tags: [SETTINGS_TAG], revalidate: 600 },
+);
+
 export async function getSetting(key: string): Promise<string> {
-  const row = await db.appSetting.findUnique({ where: { key } });
-  return row?.value ?? DEFAULT_SETTINGS[key] ?? "";
+  const settings = await getAllSettings();
+  return settings[key] ?? "";
 }
 
 export async function getSettingNumber(key: string): Promise<number> {
   const v = await getSetting(key);
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
-}
-
-export async function getAllSettings(): Promise<Record<string, string>> {
-  const rows = await db.appSetting.findMany();
-  const map: Record<string, string> = { ...DEFAULT_SETTINGS };
-  for (const r of rows) map[r.key] = r.value;
-  return map;
 }
 
 const updateSchema = z.object({

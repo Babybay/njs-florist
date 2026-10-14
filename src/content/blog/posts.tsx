@@ -17,12 +17,12 @@ export const blogPosts: BlogPost[] = [
     description:
       "Setiap acara butuh karakter bunga yang berbeda. Begini cara kami membantu kamu memilih rangkaian yang pas.",
     date: "2026-04-12",
-    author: "Tim njs Florist",
+    author: "Tim NJS Projects",
     body: (
       <>
         <p>
           Bali punya iklim yang ramah untuk berbagai jenis bunga, tapi tidak semua bunga cocok untuk
-          setiap acara. Berikut beberapa panduan singkat yang sering kami berikan ke klien njs Florist.
+          setiap acara. Berikut beberapa panduan singkat yang sering kami berikan ke klien NJS Projects.
         </p>
         <h2>Wedding</h2>
         <p>
@@ -48,7 +48,7 @@ export const blogPosts: BlogPost[] = [
     description:
       "5 tips sederhana untuk menjaga rangkaian bunga tetap segar hingga seminggu lebih.",
     date: "2026-03-22",
-    author: "Tim njs Florist",
+    author: "Tim NJS Projects",
     body: (
       <>
         <p>
@@ -74,7 +74,7 @@ export const blogPosts: BlogPost[] = [
     description:
       "Setiap orang punya cerita yang berbeda. Rangkaian custom membantu menyampaikannya dengan tepat.",
     date: "2026-02-08",
-    author: "Tim njs Florist",
+    author: "Tim NJS Projects",
     body: (
       <>
         <p>

@@ -1,6 +1,6 @@
-# njs Florist
+# NJS Projects
 
-Storefront, checkout, and admin workspace for **njs Florist Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
+Storefront, checkout, and admin workspace for **NJS Projects Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
 
 ---
 
