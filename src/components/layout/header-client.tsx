@@ -171,11 +171,11 @@ export function HeaderClient({
       transition={{ duration: 0.35, ease: [0.22, 0.61, 0.36, 1] }}
       className={`sticky top-0 z-30 border-b transition-colors duration-300 ${
         scrolled
-          ? "border-[color:var(--rule)] bg-[color:var(--background)]/85 backdrop-blur-md"
-          : "border-transparent bg-[color:var(--background)]/0"
+          ? "border-[color:var(--petal)]/30 bg-[#f1dcdc]/85 shadow-[0_8px_30px_-20px_rgba(184,80,110,0.45)] backdrop-blur-md"
+          : "border-transparent bg-transparent"
       }`}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -187,26 +187,19 @@ export function HeaderClient({
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
           </button>
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/" className="flex" aria-label="NJS Projects beranda">
             <Image
-              src="/logo.png"
-              alt="njs florist"
-              width={36}
-              height={36}
+              src="/njs-projects-logo.png"
+              alt="NJS Projects"
+              width={50}
+              height={64}
               priority
-              className="h-9 w-9 rounded-full object-cover"
+              className="h-16 w-auto object-contain"
             />
-            <span className="flex items-baseline gap-2">
-              <span className="nf-display text-2xl text-[color:var(--ink)]">njs</span>
-              <span className="nf-display italic text-2xl text-[color:var(--rose-deep)]">florist</span>
-              <span className="hidden text-[10px] uppercase tracking-[0.28em] text-[color:var(--ink-muted)] sm:inline">
-                Bali
-              </span>
-            </span>
           </Link>
         </div>
 
-        <form action="/shop" className="hidden flex-1 max-w-md lg:flex">
+        <form action="/shop" className="hidden max-w-sm flex-1 xl:flex">
           <input
             type="search"
             name="q"
@@ -261,17 +254,14 @@ export function HeaderClient({
           <div className="absolute inset-0 bg-[color:var(--ink)]/40" onClick={() => setMobileOpen(false)} />
           <div className="absolute left-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-[color:var(--background)] p-5 shadow-xl">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2.5">
+              <span className="flex">
                 <Image
-                  src="/logo.png"
-                  alt="njs florist"
+                  src="/njs-projects-logo.png"
+                  alt="NJS Projects"
                   width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full object-cover"
+                  height={41}
+                  className="h-9 w-auto object-contain"
                 />
-                <span className="nf-display text-2xl text-[color:var(--ink)]">
-                  njs <span className="italic text-[color:var(--rose-deep)]">florist</span>
-                </span>
               </span>
               <button
                 type="button"

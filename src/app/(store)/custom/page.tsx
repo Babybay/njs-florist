@@ -5,7 +5,7 @@ import { PageKicker, PageTitle } from "@/components/ui/store-ui";
 
 export const metadata = {
   title: "Custom bouquet",
-  description: "Pesan rangkaian custom dari njs Florist untuk acara spesialmu.",
+  description: "Pesan rangkaian custom dari NJS Projects untuk acara spesialmu.",
 };
 
 export default function CustomBouquetPage() {

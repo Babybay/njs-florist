@@ -1,6 +1,6 @@
-# njs Florist
+# NJS Projects
 
-Storefront, checkout, and admin workspace for **njs Florist Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
+Storefront, checkout, and admin workspace for **NJS Projects Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
 
 ---
 
@@ -94,6 +94,20 @@ src/
   server/              # Services, server actions
 public/                # Static assets (logo, favicons, etc.)
 ```
+
+---
+
+## Interface
+
+- UI primitives live in `src/components/ui/` and are generated from the shadcn/ui registry. `components.json` records the project’s Tailwind 4, `@/*`, Lucide, and Base UI configuration. The florist palette maps into shadcn’s semantic CSS tokens in `src/app/globals.css`.
+- `src/components/ui/store-ui.tsx` and `src/components/admin/ui.tsx` are compatibility layers over shadcn Button and Card primitives, preserving existing application contracts while removing the bespoke button, card, and drawer implementations.
+- Catalog search, category, price, and sort selections remain URL-driven. On mobile, filters now open as a compact shadcn Sheet with a two-column category grid, rather than a tall list-style side panel. Storefront and admin navigation use the same accessible Sheet primitive.
+- Product, cart, and checkout screens share clear pricing and responsive review layouts. Saved gift messages appear at checkout; one distinct message prefills the order-level field. The current order contract supports one final card message for the whole order.
+- Checkout requires an active pickup store with slots. Configure these before accepting orders; the interface blocks submission when the selected store has no slots.
+- Auth, inquiry, tracking, account, journal, and workspace layouts use the same visual language. Payment completion copy follows persisted payment state rather than treating a callback URL as proof of payment.
+- Verification: `npx tsc --noEmit` and the optimized production build passed. A production `/shop` request returned HTTP 200. The automated browser relay was unavailable for the final visual pass; repeat the mobile Sheet visual check before release. Authenticated workspace layouts and completed payments were not exercised.
+
+The interface refresh does not resolve the separate order-access, webhook verification, inventory-reservation, or checkout-idempotency risks identified in the application audit.
 
 ---
 

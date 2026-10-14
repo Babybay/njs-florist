@@ -49,3 +49,5 @@ florist_website_architecture_full_specs.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel

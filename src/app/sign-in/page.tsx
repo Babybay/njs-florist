@@ -23,7 +23,7 @@ export default async function SignInPage({
       <SiteHeader />
       <main className="mx-auto max-w-md px-4 py-16 sm:px-6 lg:px-8">
         <PageKicker>Akun</PageKicker>
-        <PageTitle>Masuk ke njs Florist</PageTitle>
+        <PageTitle>Masuk ke NJS Projects</PageTitle>
         <p className="mt-3 text-sm text-black/65">
           Belum punya akun?{" "}
           <Link

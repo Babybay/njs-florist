@@ -16,7 +16,7 @@ export default function FloristStaffPage() {
           href="/"
           className="text-sm font-semibold uppercase tracking-[0.18em] text-black underline-offset-4 hover:underline"
         >
-          ← njs Florist
+          ← NJS Projects
         </Link>
         <div className="mt-6">
           <PageKicker>Florist</PageKicker>

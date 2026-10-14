@@ -6,7 +6,7 @@ import { listActiveProducts, listCategories } from "@/server/services/catalog.se
 
 export const metadata = {
   title: "Katalog",
-  description: "Pilih bunga segar, flower box, dan rangkaian custom njs Florist.",
+  description: "Pilih bunga segar, flower box, dan rangkaian custom dari NJS Projects.",
 };
 
 export const revalidate = 60;

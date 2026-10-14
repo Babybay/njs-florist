@@ -301,22 +301,32 @@ async function main() {
   console.log("Seeding stores...");
   await db.store.upsert({
     where: { id: "store_seed_1" },
-    update: {},
+    update: {
+      name: "NJS Projects Denpasar",
+      address: "Denpasar, Bali",
+      mapsUrl: "https://maps.app.goo.gl/gMPNoNxhK1pBqSFd9",
+    },
     create: {
       id: "store_seed_1",
-      name: "njs Florist — Denpasar",
-      address: "Denpasar, Bali — ubah alamat lengkap di Pengaturan",
+      name: "NJS Projects Denpasar",
+      address: "Denpasar, Bali",
+      mapsUrl: "https://maps.app.goo.gl/gMPNoNxhK1pBqSFd9",
       sortOrder: 0,
       isActive: true,
     },
   });
   await db.store.upsert({
     where: { id: "store_seed_2" },
-    update: {},
+    update: {
+      name: "NJS Projects Dalung",
+      address: "Dalung, Bali",
+      mapsUrl: "https://maps.app.goo.gl/cSi5RLGya56iUCzv7",
+    },
     create: {
       id: "store_seed_2",
-      name: "njs Florist — Dalung",
-      address: "Dalung, Bali — ubah alamat lengkap di Pengaturan",
+      name: "NJS Projects Dalung",
+      address: "Dalung, Bali",
+      mapsUrl: "https://maps.app.goo.gl/cSi5RLGya56iUCzv7",
       sortOrder: 1,
       isActive: true,
     },

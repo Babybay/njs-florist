@@ -9,8 +9,7 @@ const ACTIVE_PICKUP_STATUSES = [
   "READY_FOR_DELIVERY",
   "OUT_FOR_DELIVERY",
 ] as const;
-
-const PRODID = "-//njs Florist//Pickup Schedule//EN";
+const PRODID = "-//NJS Projects//Pickup Schedule//EN";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -123,7 +122,7 @@ export async function buildCalendarFeed(): Promise<string> {
     const dtEnd = formatLocalDateTime(order.deliveryDate, slot.endTime);
 
     lines.push("BEGIN:VEVENT");
-    lines.push(foldLine(`UID:order-${order.id}@njsflorist.id`));
+    lines.push(foldLine(`UID:order-${order.id}@njs-projects`));
     lines.push(`DTSTAMP:${formatUtcTimestamp(now)}`);
     lines.push(`LAST-MODIFIED:${formatUtcTimestamp(order.updatedAt)}`);
     lines.push(`DTSTART:${dtStart}`);

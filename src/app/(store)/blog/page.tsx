@@ -6,7 +6,7 @@ import { blogPosts } from "@/content/blog/posts";
 
 export const metadata = {
   title: "Jurnal",
-  description: "Tips dan inspirasi seputar bunga, dari tim njs Florist.",
+  description: "Tips dan inspirasi seputar bunga dari tim NJS Projects.",
 };
 
 export default function BlogIndexPage() {

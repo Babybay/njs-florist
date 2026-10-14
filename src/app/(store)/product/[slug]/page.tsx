@@ -115,15 +115,14 @@ export default async function ProductPage({
                 {product.description}
               </p>
 
-              {/* studio note */}
               <div className="mt-6 flex items-start gap-3 rounded-[3px] border border-[color:var(--rule)] bg-[color:var(--paper)] px-4 py-3.5 text-[12.5px] leading-[1.6] text-[color:var(--ink-soft)]">
                 <span aria-hidden className="nf-display italic text-xl leading-none text-[color:var(--ink)]">
                   ✿
                 </span>
                 <span>
-                  Dirangkai dengan tangan di studio kami di Kuta. Pesan
-                  sebelum <strong className="font-semibold text-[color:var(--ink)]">{cutoffHour}.00 WITA</strong> untuk
-                  pickup hari ini.
+                  Dirangkai dengan tangan oleh NJS Projects. Pesan sebelum{" "}
+                  <strong className="font-semibold text-[color:var(--ink)]">{cutoffHour}.00 WITA</strong> untuk
+                  pickup hari ini di Denpasar atau Dalung.
                 </span>
               </div>
 
