@@ -13,15 +13,15 @@ function Brand() {
       className="flex items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-stone-200/50"
     >
       <Image
-        src="/logo.png"
-        alt="njs florist"
+        src="/njs-projects-logo.png"
+        alt="NJS Projects"
         width={28}
-        height={28}
+        height={36}
         priority
-        className="h-7 w-7 rounded-md object-cover"
+        className="h-8 w-auto object-contain"
       />
       <div className="leading-tight">
-        <p className="text-sm font-semibold text-stone-900">njs Florist</p>
+        <p className="text-sm font-semibold text-stone-900">NJS Projects</p>
         <p className="text-[11px] text-stone-500">Workspace admin</p>
       </div>
     </Link>

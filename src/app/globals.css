@@ -14,8 +14,10 @@
   --paper: #ffffff;            /* white sections (mission, modals) */
   --blush: #f1ede5;             /* tile/badge bg — kept faint */
   --blush-strong: #e7b9b3;     /* dusty rose — kept for legacy/admin only */
-  --rose-deep: #b56a6a;        /* legacy CTA accent (catalog filter etc) */
-  --rose-deeper: #934f50;
+  --rose-deep: #b8506e;        /* brand CTA accent, deepened from the logo pink */
+  --rose-deeper: #9a3f5a;
+  --petal: #ed9cb0;            /* NJS Projects logo pink */
+  --petal-deep: var(--rose-deep);
   --rule: #d9d4ca;             /* hairlines on beige */
   --rule-strong: #c8c1b3;
 }
@@ -225,6 +227,41 @@ img {
   font-family: var(--font-display), "Playfair Display", Georgia, "Times New Roman", serif;
   font-feature-settings: "lnum" 1, "kern" 1;
   letter-spacing: -0.01em;
+}
+
+/* ─── Rounded bloom display for the hero wordmark ─── */
+.nf-bloom {
+  font-family: var(--font-bloom), "Fredoka", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Condensed poster face for the footer wordmark ─── */
+.nf-poster {
+  font-family: var(--font-poster), "Anton", Impact, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Gentle stem sway for SVG flowers ─── */
+@keyframes nf-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+.nf-sway {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: nf-sway 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nf-sway,
+  .nf-spin-slow {
+    animation: none;
+  }
 }
 
 @media print {

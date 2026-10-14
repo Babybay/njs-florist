@@ -10,6 +10,7 @@ import {
   useSpring,
 } from "motion/react";
 import type { StoreProduct } from "@/server/services/catalog.service";
+import { BloomMark } from "@/components/brand/flower-graphics";
 
 const EASE = [0.22, 0.61, 0.36, 1] as const;
 
@@ -18,32 +19,17 @@ export function BestSellersClient({ products }: { products: StoreProduct[] }) {
 
   return (
     <section className="relative bg-[color:var(--background)]">
-      <div className="mx-auto max-w-7xl px-4 pb-28 pt-20 sm:px-6 lg:px-8 lg:pt-24">
-        {/* ── Editorial section header ──────────────────────────────── */}
+      <div className="mx-auto max-w-7xl px-4 pb-28 pt-12 sm:px-6 lg:px-8 lg:pt-16">
         <motion.header
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.7, ease: EASE }}
-          className="mb-16 grid grid-cols-12 items-end gap-6 border-b border-[color:var(--rule)] pb-8"
+          className="mb-14 max-w-2xl"
         >
-          <div className="col-span-12 flex items-center gap-3 lg:col-span-3">
-            <span aria-hidden className="block h-px w-9 bg-[color:var(--ink)]" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.42em] text-[color:var(--ink-soft)]">
-              Showcase Nº 01
-            </span>
-          </div>
-          <div className="col-span-12 lg:col-span-6">
-            <h2 className="nf-display text-[2.75rem] leading-[1] text-[color:var(--ink)] sm:text-[3.25rem] lg:text-[3.75rem]">
-              <span className="font-normal italic">Recently</span> in studio
-            </h2>
-          </div>
-          <div className="col-span-12 flex items-center justify-start gap-3 lg:col-span-3 lg:justify-end">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.34em] text-[color:var(--ink-muted)]">
-              dirangkai pekan ini
-            </span>
-            <span aria-hidden className="block h-px w-9 bg-[color:var(--rule-strong)]" />
-          </div>
+          <h2 className="nf-bloom text-[2.75rem] font-semibold leading-[1.05] text-[color:var(--ink)] sm:text-[3.5rem]">
+            Pilihan bunga untuk <span className="text-[color:var(--rose-deep)]">momenmu</span>
+          </h2>
         </motion.header>
 
         {/* ── Product grid (2/4 col, portrait cards) ────────────────── */}
@@ -71,9 +57,7 @@ export function BestSellersClient({ products }: { products: StoreProduct[] }) {
         <div className="mt-20 flex flex-col items-center gap-7">
           <div aria-hidden className="flex items-center gap-4">
             <span className="block h-px w-14 bg-[color:var(--rule-strong)] sm:w-24" />
-            <span className="nf-display text-[18px] italic leading-none text-[color:var(--ink-muted)]">
-              ✿
-            </span>
+            <BloomMark className="h-7 w-7" />
             <span className="block h-px w-14 bg-[color:var(--rule-strong)] sm:w-24" />
           </div>
           <MagneticButton href="/shop">
@@ -152,7 +136,7 @@ function BestSellerCard({
           <h3 className="text-[13px] font-semibold text-[color:var(--ink)] transition-colors group-hover:text-[color:var(--rose-deep)]">
             {product.name}
           </h3>
-          <p className="nf-display text-[14px] italic leading-none text-[color:var(--ink-soft)]">
+          <p className="text-[14px] font-semibold leading-none text-[color:var(--ink-soft)]">
             Rp {Intl.NumberFormat("id-ID").format(lowestPrice)}
           </p>
         </div>
