@@ -25,8 +25,8 @@ export function Skeleton({
 export function PageShellSkeleton({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-[color:var(--rule)]/70 bg-[color:var(--background)]/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
+      <header className="store-header">
+        <div className="store-header-row store-container">
           <Skeleton className="h-5 w-28" />
           <div className="hidden items-center gap-6 md:flex">
             <Skeleton className="h-3.5 w-14" />
@@ -39,7 +39,7 @@ export function PageShellSkeleton({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="bg-[color:var(--background)]">{children}</main>
+      <main id="main-content" className="bg-[color:var(--background)]" aria-busy="true" aria-label="Memuat halaman">{children}</main>
       <footer className="border-t border-[color:var(--rule)]/70 bg-[color:var(--background)] px-4 py-12 sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-6 sm:grid-cols-3">
           <Skeleton className="h-4 w-32" />

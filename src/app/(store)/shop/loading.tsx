@@ -18,7 +18,7 @@ export default function ShopLoading() {
           ))}
         </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-3">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="space-y-3">
               <Skeleton className="aspect-square w-full" />

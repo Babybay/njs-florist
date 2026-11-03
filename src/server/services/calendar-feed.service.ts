@@ -10,7 +10,7 @@ const ACTIVE_PICKUP_STATUSES = [
   "OUT_FOR_DELIVERY",
 ] as const;
 
-const PRODID = "-//njs Florist//Pickup Schedule//EN";
+const PRODID = "-//NJS Projects//Pickup Schedule//EN";
 
 function pad(n: number) {
   return String(n).padStart(2, "0");

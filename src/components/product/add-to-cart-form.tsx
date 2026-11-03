@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { addToCartFormAction } from "@/server/actions/cart.actions";
 import { formatIDR } from "@/lib/money";
 
@@ -39,6 +41,8 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
   const selectedVariant = variants.find((v) => v.id === variantId);
   const maxQty = selectedVariant?.availability ?? 0;
   const outOfStock = !selectedVariant || maxQty === 0;
+  const itemTotal = (basePrice + (selectedVariant?.priceAdjust ?? 0)) * quantity;
+  const addonTotal = addons.filter((addon) => selectedAddons.has(addon.id)).reduce((sum, addon) => sum + addon.price, 0);
 
   function toggleAddon(id: string) {
     setSelectedAddons((prev) => {
@@ -64,13 +68,14 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
         await addToCartFormAction(fd);
         setAdded(true);
       } catch (err) {
+        unstable_rethrow(err);
         setError(err instanceof Error ? err.message : "Gagal menambahkan ke keranjang.");
       }
     });
   }
 
   return (
-    <div className="grid gap-7">
+    <fieldset disabled={pending} className="grid min-w-0 gap-7">
       <FormSection label="Pilih varian">
         <div className="grid gap-2.5">
           {variants.map((variant) => {
@@ -149,6 +154,7 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
 
       <FormSection label="Pesan kartu (opsional)">
         <textarea
+          aria-label="Pesan kartu untuk penerima"
           rows={3}
           value={cardMessage}
           onChange={(event) => setCardMessage(event.target.value)}
@@ -161,6 +167,7 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
         </p>
       </FormSection>
 
+      <div className="store-order-summary" aria-live="polite"><span>Total rangkaian<small>Belum termasuk biaya pengantaran</small></span><strong>{formatIDR(itemTotal + addonTotal)}</strong></div>
       <div className="grid gap-3 border-t border-[color:var(--rule)] pt-6 sm:grid-cols-[auto_1fr] sm:items-center">
         <div className="inline-flex items-center rounded-full border border-[color:var(--rule-strong)] bg-[color:var(--paper)]">
           <button
@@ -177,7 +184,7 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
             min={1}
             max={Math.max(maxQty, 1)}
             value={quantity}
-            onChange={(event) => setQuantity(Math.max(1, Number(event.target.value) || 1))}
+            onChange={(event) => setQuantity(Math.min(Math.max(maxQty, 1), Math.max(1, Math.floor(Number(event.target.value) || 1))))}
             disabled={outOfStock}
             aria-label="Jumlah"
             className="h-11 w-12 border-0 bg-transparent text-center text-sm font-semibold text-[color:var(--ink)] focus:outline-none"
@@ -196,9 +203,10 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
           type="button"
           onClick={submit}
           disabled={pending || outOfStock || quantity > maxQty}
-          className="nf-btn nf-btn--outline w-full disabled:opacity-50 sm:w-auto"
+          aria-busy={pending}
+          className="nf-btn nf-btn--primary w-full disabled:opacity-50 sm:w-auto"
         >
-          {pending ? "Menambahkan…" : outOfStock ? "Stok habis" : "Tambah ke keranjang →"}
+          {pending ? "Menambahkan…" : outOfStock ? "Stok habis" : "Tambah ke keranjang"}
         </button>
       </div>
       {added ? (
@@ -206,8 +214,9 @@ export function AddToCartForm({ productId, basePrice, variants, addons }: Props)
           ✓ Ditambahkan ke keranjang. <a href="/cart" className="underline underline-offset-4">Lihat keranjang →</a>
         </p>
       ) : null}
-      {error ? <p className="text-sm font-semibold text-rose-700">{error}</p> : null}
-    </div>
+      {error ? <p role="alert" className="text-sm font-semibold text-rose-700">{error}</p> : null}
+      {outOfStock ? <p className="text-sm leading-7 text-[color:var(--ink-soft)]">Rangkaian ini belum tersedia. <Link href="/custom" className="store-text-link">Diskusikan alternatif custom</Link></p> : null}
+    </fieldset>
   );
 }
 

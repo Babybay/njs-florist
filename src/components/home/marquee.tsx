@@ -1,10 +1,6 @@
-"use client";
-
-import { motion, useReducedMotion } from "motion/react";
-
 const DEFAULT_ITEMS = [
   "Bunga segar harian",
-  "Pickup di Kuta",
+  "Pickup di Dalung & Denpasar",
   "Rangkaian custom",
   "Same-day order sebelum 14.00 WITA",
   "Pengantaran area Bali",
@@ -12,35 +8,12 @@ const DEFAULT_ITEMS = [
 ];
 
 export function Marquee({ items = DEFAULT_ITEMS }: { items?: string[] }) {
-  const reduced = useReducedMotion();
-  // Double the list so the loop is seamless when offsetting -50%.
-  const doubled = [...items, ...items];
-
   return (
-    <section className="relative isolate border-y border-[color:var(--rule)] bg-[color:var(--paper)] py-5">
-      <div className="group overflow-hidden">
-        <motion.div
-          initial={{ x: 0 }}
-          animate={reduced ? undefined : { x: "-50%" }}
-          transition={
-            reduced
-              ? undefined
-              : { duration: 38, ease: "linear", repeat: Infinity }
-          }
-          className="flex w-max items-center gap-12 will-change-transform group-hover:[animation-play-state:paused]"
-        >
-          {doubled.map((item, i) => (
-            <span
-              key={i}
-              className="nf-display italic text-[1.5rem] leading-none text-[color:var(--ink)] sm:text-[1.75rem]"
-            >
-              <span aria-hidden className="mr-12 text-[color:var(--ink-muted)]">
-                ✿
-              </span>
-              {item}
-            </span>
-          ))}
-        </motion.div>
+    <section aria-label="Layanan NJS Projects" className="border-y border-[color:var(--rule)] bg-[color:var(--paper)]">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-5 gap-y-3 px-5 py-5 text-sm text-[color:var(--ink-soft)] sm:grid-cols-3 sm:px-8 lg:grid-cols-6">
+        {items.map((item) => (
+          <p key={item} className="border-l border-[color:var(--rule)] pl-3 first:border-l-0 first:pl-0">{item}</p>
+        ))}
       </div>
     </section>
   );

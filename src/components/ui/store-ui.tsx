@@ -65,12 +65,12 @@ export function inputClass(extra = "") {
 }
 
 export function labelClass() {
-  return "grid gap-1.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-black/70";
+  return "grid gap-2 text-sm font-medium text-[color:var(--ink-soft)]";
 }
 
 export function PageKicker({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-black/55">
+    <p className="text-sm text-[color:var(--ink-soft)]">
       {children}
     </p>
   );
@@ -78,7 +78,7 @@ export function PageKicker({ children }: { children: ReactNode }) {
 
 export function PageTitle({ children }: { children: ReactNode }) {
   return (
-    <h1 className="mt-2 text-3xl font-bold tracking-tight text-black sm:text-4xl">
+    <h1 className="nf-display mt-3 text-4xl font-normal tracking-tight text-[color:var(--ink)] sm:text-5xl">
       {children}
     </h1>
   );

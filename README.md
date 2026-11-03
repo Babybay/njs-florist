@@ -1,6 +1,6 @@
-# njs Florist
+# NJS Projects
 
-Storefront, checkout, and admin workspace for **njs Florist Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
+Storefront, checkout, and admin workspace for **NJS Projects Bali**, built on Next.js 16 (App Router), Prisma 6, Supabase Postgres, and Tailwind 4.
 
 ---
 
@@ -24,6 +24,18 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+For storefront design work without a database, start the development server with
+`UI_PREVIEW=1`. In PowerShell:
+
+```powershell
+$env:UI_PREVIEW = "1"
+npm run dev
+```
+
+This mode displays sample catalog data and read-only product details. It is not
+a replacement for testing checkout or admin workflows with a real database, and
+it is disabled in production builds.
 
 ### Useful scripts
 

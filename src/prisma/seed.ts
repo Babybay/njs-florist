@@ -304,7 +304,7 @@ async function main() {
     update: {},
     create: {
       id: "store_seed_1",
-      name: "njs Florist — Denpasar",
+      name: "NJS Projects — Denpasar",
       address: "Denpasar, Bali — ubah alamat lengkap di Pengaturan",
       sortOrder: 0,
       isActive: true,
@@ -315,7 +315,7 @@ async function main() {
     update: {},
     create: {
       id: "store_seed_2",
-      name: "njs Florist — Dalung",
+      name: "NJS Projects — Dalung",
       address: "Dalung, Bali — ubah alamat lengkap di Pengaturan",
       sortOrder: 1,
       isActive: true,

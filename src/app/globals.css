@@ -1,23 +1,33 @@
+/* Hallmark · v2.0.0 · theme: Newsprint (brand-preserving) · redesign: full
+ * critique: removed client-only homepage motion and its loading curtain; retained the store's real catalogue and managed imagery. */
 @import "tailwindcss";
+@import "./storefront.css";
 
 /* ─── Romantic editorial florist palette
    Dusty rose dominant, warm cream ground, deep rose for CTAs/bands.
    All tokens are semantic so existing components inherit the new mood
    without touching their markup. ─── */
 :root {
-  --background: #ece8e1;       /* warm sandy beige — editorial cream */
+  --background: #fffaf9;
   --foreground: #1f1d1b;       /* near-black warm ink */
   --ink: #1f1d1b;
   --ink-soft: #4d4945;
-  --ink-muted: #8a8278;
-  --cream: #ffffff;
-  --paper: #ffffff;            /* white sections (mission, modals) */
-  --blush: #f1ede5;             /* tile/badge bg — kept faint */
-  --blush-strong: #e7b9b3;     /* dusty rose — kept for legacy/admin only */
-  --rose-deep: #b56a6a;        /* legacy CTA accent (catalog filter etc) */
-  --rose-deeper: #934f50;
+  --ink-muted: #69615b;
+  --cream: #fffdf8;
+  --paper: #fffdf8;            /* white sections (mission, modals) */
+  --blush: #faedf0;
+  --blush-strong: #eaa0b6;
+  --rose-deep: #98435b;
+  --rose-deeper: #793348;
   --rule: #d9d4ca;             /* hairlines on beige */
   --rule-strong: #c8c1b3;
+  --focus: #6f373d;
+  --image-scrim: rgba(31, 29, 27, 0.22);
+  --shadow-rose: rgba(154, 79, 79, 0.55);
+  --shadow-ink: rgba(42, 31, 34, 0.45);
+  --shadow-print: rgba(0, 0, 0, 0.35);
+  --print-ink: #1c1917;
+  --print-rule: #a8a29e;
 }
 
 @theme inline {
@@ -45,6 +55,30 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 0.75rem 1rem;
+}
+
+.skip-link:focus-visible {
+  top: 1rem;
+}
+
 img {
   max-width: 100%;
 }
@@ -59,20 +93,19 @@ img {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;          /* pill — softer, romantic ecommerce */
-  padding: 14px 30px;
-  font-size: 11px;
+  border-radius: 4px;
+  min-height: 48px;
+  padding: 12px 28px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  letter-spacing: normal;
   transition:
     background-color 0.3s ease,
     color 0.3s ease,
     transform 0.3s ease,
     box-shadow 0.3s ease,
     border-color 0.3s ease;
-  will-change: transform;
 }
 .nf-btn:disabled {
   opacity: 0.55;
@@ -80,14 +113,12 @@ img {
 }
 .nf-btn--primary {
   background: var(--rose-deep);
-  color: #ffffff;
+  color: var(--cream);
   border: 1px solid var(--rose-deep);
 }
 .nf-btn--primary:hover:not(:disabled) {
   background: var(--rose-deeper);
   border-color: var(--rose-deeper);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -10px rgba(154, 79, 79, 0.55);
 }
 .nf-btn--secondary {
   background: transparent;
@@ -97,8 +128,6 @@ img {
 .nf-btn--secondary:hover:not(:disabled) {
   background: var(--ink);
   color: var(--cream);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -10px rgba(42, 31, 34, 0.45);
 }
 .nf-btn--ghost {
   background: transparent;
@@ -108,13 +137,16 @@ img {
 .nf-btn--ghost:hover:not(:disabled) {
   background: var(--blush);
 }
+.nf-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
 /* Outlined rectangular CTA — matches the "ALL FLOWERS →" reference button. */
 .nf-btn--outline {
   background: transparent;
   color: var(--ink);
   border: 1px solid var(--ink);
   border-radius: 2px;
-  padding: 18px 36px;
+  padding: 16px 36px;
   letter-spacing: 0.28em;
 }
 .nf-btn--outline:hover:not(:disabled) {
@@ -130,8 +162,6 @@ img {
   background: var(--ink);
   color: var(--cream);
   border-color: var(--ink);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.35);
 }
 
 /* ─── Arch frames (cathedral/window motif, the signature device) ─── */
@@ -227,6 +257,25 @@ img {
   letter-spacing: -0.01em;
 }
 
+h1, h2 { text-wrap: balance; overflow-wrap: break-word; min-width: 0; }
+a, button { -webkit-tap-highlight-color: transparent; }
+input, textarea, select { caret-color: var(--rose-deep); }
+html { scrollbar-color: var(--rule-strong) var(--background); }
+:where(a, button, summary, input, select, textarea):focus-visible { outline: 2px solid var(--focus) !important; outline-offset: 4px; }
+
+.hero-image-overlay {
+  background: linear-gradient(to bottom, transparent 55%, var(--image-scrim));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @media print {
   @page {
     size: A4;
@@ -234,7 +283,7 @@ img {
   }
 
   body {
-    background: #ffffff;
+    background: var(--print-paper, var(--cream));
   }
 
   body:has(.invoice-page) aside,
@@ -289,8 +338,8 @@ img {
      tight block padding plus collapsed grid/margin spacing. This keeps the whole
      invoice on a single A4 sheet even with the slightly larger font/photos. */
   .invoice-block {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
   }
 
   /* Pull the default Tailwind vertical rhythm in tight when printing. */
@@ -313,16 +362,16 @@ img {
   .invoice-document,
   .invoice-document * {
     font-weight: 400 !important;
-    color: #1c1917 !important;
+    color: var(--print-ink) !important;
   }
 
   /* Flip solid dark boxes (e.g. "Sisa tagihan") to a light bordered look. */
   .invoice-document .bg-stone-900 {
-    background-color: #ffffff !important;
-    border: 1px solid #a8a29e !important;
+    background-color: var(--print-paper, var(--cream)) !important;
+    border: 1px solid var(--print-rule) !important;
   }
   .invoice-document .bg-stone-50,
   .invoice-document .bg-stone-100 {
-    background-color: #ffffff !important;
+    background-color: var(--print-paper, var(--cream)) !important;
   }
 }

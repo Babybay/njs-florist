@@ -1,5 +1,7 @@
+import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { isUiPreview } from "@/lib/ui-preview";
 
 export const SETTING_KEYS = {
   DELIVERY_FEE: "delivery_fee",
@@ -22,7 +24,7 @@ export const SETTING_KEYS = {
 export const DEFAULT_SETTINGS: Record<string, string> = {
   [SETTING_KEYS.DELIVERY_FEE]: "0",
   [SETTING_KEYS.SAME_DAY_CUTOFF_HOUR]: "14",
-  [SETTING_KEYS.BUSINESS_NAME]: "njs Florist",
+  [SETTING_KEYS.BUSINESS_NAME]: "NJS Projects",
   [SETTING_KEYS.BUSINESS_PHONE]: "+62 812-0000-0000",
   [SETTING_KEYS.BUSINESS_EMAIL]: "halo@njsflorist.id",
   [SETTING_KEYS.PICKUP_ADDRESS]: "Jl. Sunset Road No. 88, Kuta, Bali",
@@ -41,8 +43,35 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
     "Rangkaian bunga preserved dalam glass box yang bertahan hingga setahun. Cocok untuk hadiah anniversary, valentine, atau dekorasi rumah.",
 };
 
+export const SETTINGS_TAG = "store-settings";
+
+// Present the new brand even when an existing settings row retains its old name.
+// Contact details remain the store owner's configured values.
+function normalizeBrandName(settings: Record<string, string>) {
+  const name = settings[SETTING_KEYS.BUSINESS_NAME];
+  if (/^njs\s+florist(?:\s+bali)?$/i.test(name?.trim() ?? "")) {
+    settings[SETTING_KEYS.BUSINESS_NAME] = "NJS Projects";
+  }
+  return settings;
+}
+
+const readAllSettings = unstable_cache(
+  async () => {
+    const rows = await db.appSetting.findMany();
+    const map: Record<string, string> = { ...DEFAULT_SETTINGS };
+    for (const row of rows) map[row.key] = row.value;
+    return normalizeBrandName(map);
+  },
+  ["store-settings-njs-projects"],
+  { tags: [SETTINGS_TAG], revalidate: 300 },
+);
+
 export async function getSetting(key: string): Promise<string> {
+  if (isUiPreview) return DEFAULT_SETTINGS[key] ?? "";
   const row = await db.appSetting.findUnique({ where: { key } });
+  if (key === SETTING_KEYS.BUSINESS_NAME) {
+    return normalizeBrandName({ [key]: row?.value ?? DEFAULT_SETTINGS[key] })[key];
+  }
   return row?.value ?? DEFAULT_SETTINGS[key] ?? "";
 }
 
@@ -53,10 +82,8 @@ export async function getSettingNumber(key: string): Promise<number> {
 }
 
 export async function getAllSettings(): Promise<Record<string, string>> {
-  const rows = await db.appSetting.findMany();
-  const map: Record<string, string> = { ...DEFAULT_SETTINGS };
-  for (const r of rows) map[r.key] = r.value;
-  return map;
+  if (isUiPreview) return { ...DEFAULT_SETTINGS };
+  return readAllSettings();
 }
 
 const updateSchema = z.object({

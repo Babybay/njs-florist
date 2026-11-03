@@ -19,7 +19,7 @@ export function InquiryForm() {
         await submitInquiryAction(formData);
         setSubmitted(true);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Gagal mengirim inquiry.");
+        setError(err instanceof Error ? err.message : "Permintaan belum terkirim. Silakan coba lagi.");
       }
     });
   }
@@ -27,10 +27,10 @@ export function InquiryForm() {
   if (submitted) {
     return (
       <div className="rounded-md border border-emerald-300 bg-emerald-50 p-6 text-sm text-emerald-900">
-        <p className="font-semibold">Terima kasih!</p>
+        <p className="font-semibold">Permintaan Anda sudah kami terima.</p>
         <p className="mt-1">
-          Inquiry kamu sudah masuk. Tim florist kami akan menghubungi via WhatsApp atau email
-          dalam 1×24 jam.
+          Tim NJS Projects akan menghubungi Anda melalui WhatsApp atau email yang dicantumkan
+          untuk membahas rangkaian dan ketersediaannya.
         </p>
       </div>
     );
@@ -39,28 +39,29 @@ export function InquiryForm() {
   return (
     <form action={submit} className="grid gap-4 rounded-md border border-stone-200 bg-white p-6">
       <div className="grid gap-3 sm:grid-cols-2">
-        <input name="customerName" required placeholder="Nama lengkap" className={fieldClass} />
-        <input name="customerEmail" type="email" required placeholder="Email" className={fieldClass} />
-        <input name="customerPhone" placeholder="No WhatsApp (opsional)" className={fieldClass} />
-        <input name="occasion" placeholder="Acara (mis. wedding, ultah)" className={fieldClass} />
-        <input name="budget" type="number" min={0} placeholder="Budget kasaran (IDR)" className={fieldClass} />
-        <input name="preferredDate" type="date" className={fieldClass} />
+        <label className="grid gap-2 text-sm">Nama lengkap (wajib)<input name="customerName" autoComplete="name" required placeholder="Nama Anda" className={fieldClass} /></label>
+        <label className="grid gap-2 text-sm">Email (wajib)<input name="customerEmail" autoComplete="email" type="email" required placeholder="nama@email.com" className={fieldClass} /></label>
+        <label className="grid gap-2 text-sm">Nomor WhatsApp (opsional)<input name="customerPhone" type="tel" autoComplete="tel" placeholder="Contoh: 0812 3456 7890" className={fieldClass} /></label>
+        <label className="grid gap-2 text-sm">Acara atau tujuan hadiah (opsional)<input name="occasion" placeholder="Ulang tahun, pernikahan, ucapan terima kasih" className={fieldClass} /></label>
+        <label className="grid gap-2 text-sm">Perkiraan anggaran (Rp, opsional)<input name="budget" type="number" min={0} placeholder="Contoh: 350000" className={fieldClass} /></label>
+        <label className="grid gap-2 text-sm">Tanggal yang diinginkan (opsional)<input name="preferredDate" type="date" className={fieldClass} /></label>
       </div>
-      <textarea
+      <label className="grid gap-2 text-sm">Ceritakan rangkaian Anda (wajib)<textarea
         name="notes"
         required
         rows={5}
-        placeholder="Ceritakan visi kamu — warna, jenis bunga, mood, ukuran, dll."
+        placeholder="Warna favorit, jenis bunga, ukuran, atau suasana yang Anda inginkan."
         className={fieldClass}
-      />
-      <textarea
+      /></label>
+      <label className="grid gap-2 text-sm">Tautan foto referensi (opsional)<textarea
         name="referenceUrls"
         rows={2}
-        placeholder="URL gambar referensi (pisah dengan spasi atau baris baru)"
+        placeholder="Tempel tautan foto. Pisahkan beberapa tautan dengan baris baru."
         className={fieldClass}
-      />
+      /></label>
+      <p className="text-sm leading-6 text-stone-600">Formulir ini adalah permintaan konsultasi. Detail rangkaian, harga, dan jadwal akan dibahas bersama tim.</p>
       <Button type="submit" disabled={pending} className="w-fit">
-        {pending ? "Mengirim…" : "Kirim inquiry"}
+        {pending ? "Mengirim permintaan…" : "Kirim permintaan rangkaian"}
       </Button>
       {error ? <p className="text-sm font-semibold text-rose-700">{error}</p> : null}
     </form>

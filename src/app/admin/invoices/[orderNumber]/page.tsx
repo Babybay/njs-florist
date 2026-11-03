@@ -37,7 +37,7 @@ export default async function AdminInvoiceDetailPage({
 
   const { order, settings, materials } = invoice;
   const pickupSlot = await slotLabel(order.deliverySlotId);
-  const businessName = settings.business_name || "njs Florist";
+  const businessName = settings.business_name || "NJS Projects";
   const businessPhone = settings.business_phone || "";
   const businessEmail = settings.business_email || "";
   const pickupAddress = order.store?.address || "";
