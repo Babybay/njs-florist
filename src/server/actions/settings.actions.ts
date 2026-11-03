@@ -1,8 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/server/services/auth.service";
-import { setSettings, SETTING_KEYS } from "@/server/services/settings.service";
+import { setSettings, SETTING_KEYS, SETTINGS_TAG } from "@/server/services/settings.service";
 
 const ALLOWED_KEYS = new Set<string>(Object.values(SETTING_KEYS));
 
@@ -18,6 +18,7 @@ export async function updateSettingsAction(formData: FormData) {
 
   if (updates.length > 0) await setSettings(updates);
 
+  revalidateTag(SETTINGS_TAG, "max");
   revalidatePath("/admin/settings");
   revalidatePath("/");
 }

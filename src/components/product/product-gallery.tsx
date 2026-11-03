@@ -1,80 +1,41 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Img = { url: string; altText: string | null };
 
-export function ProductGallery({
-  images,
-  productName,
-}: {
-  images: Img[];
-  productName: string;
-}) {
+export function ProductGallery({ images, productName }: { images: Img[]; productName: string }) {
   const [index, setIndex] = useState(0);
-  const [zoom, setZoom] = useState(false);
-  const active = images[index];
-
-  if (!active) {
-    return (
-      <div className="aspect-[4/5] w-full rounded-[4px] bg-[color:var(--blush)]" />
-    );
-  }
-
+  const [expanded, setExpanded] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const active = images[index] ?? images[0];
+  useEffect(() => {
+    const panel = dialog.current;
+    if (!panel) return;
+    if (expanded && !panel.open) panel.showModal();
+    if (!expanded && panel.open) panel.close();
+    if (!expanded) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [expanded]);
+  function move(direction: number) { setIndex((current) => (current + direction + images.length) % images.length); }
+  if (!active) return <div className="store-gallery-missing">Foto {productName} sedang disiapkan.</div>;
   return (
-    <div className="grid gap-3">
-      <div
-        className="relative aspect-[4/5] w-full overflow-hidden rounded-[4px] bg-[color:var(--blush)] cursor-zoom-in"
-        onMouseEnter={() => setZoom(true)}
-        onMouseLeave={() => setZoom(false)}
-      >
-        <Image
-          src={active.url}
-          alt={active.altText ?? productName}
-          fill
-          priority
-          sizes="(max-width: 1024px) 100vw, 48vw"
-          className={`object-cover transition-transform duration-[1200ms] ease-out ${
-            zoom ? "scale-[1.08]" : "scale-100"
-          }`}
-        />
-        {/* badge top-left */}
-        <span className="absolute left-4 top-4 bg-[color:var(--paper)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[color:var(--ink)] shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-          Studio · njs
-        </span>
-        {/* counter bottom-right */}
-        {images.length > 1 ? (
-          <span className="absolute bottom-4 right-4 rounded-full bg-[color:var(--ink)]/85 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-[color:var(--cream)] backdrop-blur-sm">
-            {index + 1} / {images.length}
-          </span>
-        ) : null}
-      </div>
-      {images.length > 1 ? (
-        <div className="grid grid-cols-5 gap-2">
-          {images.map((img, i) => (
-            <button
-              key={`${img.url}-${i}`}
-              type="button"
-              onClick={() => setIndex(i)}
-              aria-label={`Lihat foto ${i + 1}`}
-              className={`relative aspect-square overflow-hidden rounded-[2px] transition duration-300 ${
-                i === index
-                  ? "ring-2 ring-[color:var(--ink)] opacity-100"
-                  : "opacity-60 hover:opacity-100"
-              }`}
-            >
-              <Image
-                src={img.url}
-                alt={img.altText ?? `${productName} ${i + 1}`}
-                fill
-                sizes="120px"
-                className="object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      ) : null}
+    <div className="store-gallery">
+      <button type="button" ref={trigger} className="store-gallery-main" aria-label={`Perbesar foto ${productName}`} aria-haspopup="dialog" onClick={() => setExpanded(true)}>
+        <Image src={active.url} alt={active.altText ?? productName} fill priority sizes="(max-width: 1024px) 90vw, 600px" className="object-cover" />
+        <span className="store-gallery-zoom" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="10" cy="10" r="6" /><path d="m15 15 6 6M7 10h6M10 7v6" /></svg></span>
+      </button>
+      {images.length > 1 ? <div className="store-gallery-thumbnails" aria-label="Foto produk">{images.map((image, i) => <button key={`${image.url}-${i}`} type="button" onClick={() => setIndex(i)} aria-pressed={i === index} aria-label={`Lihat foto ${i + 1}`}><Image src={image.url} alt="" fill sizes="80px" className="object-cover" /></button>)}</div> : null}
+      <p className="store-gallery-caption">Pilih foto untuk melihat lebih dekat.<span aria-live="polite">{images.length > 1 ? `${index + 1} dari ${images.length}` : ""}</span></p>
+      <dialog ref={dialog} className="store-lightbox" aria-label={`Foto ${productName}`} onCancel={() => setExpanded(false)} onClose={() => { setExpanded(false); trigger.current?.focus(); }} onClick={(event) => { if (event.target === dialog.current) setExpanded(false); }} onKeyDown={(event) => { if (event.key === "ArrowRight") { event.preventDefault(); move(1); } if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); } }}>
+        <div className="store-lightbox-bar"><p>{productName}</p><button type="button" className="store-icon-button" aria-label="Tutup foto" onClick={() => setExpanded(false)}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg></button></div>
+        <div className="store-lightbox-image"><Image src={active.url} alt={active.altText ?? productName} fill sizes="(max-width: 700px) 95vw, 1000px" className="object-contain" /></div>
+        {images.length > 1 ? <div className="store-lightbox-controls"><button type="button" className="nf-btn nf-btn--secondary" onClick={() => move(-1)}>Sebelumnya</button><span aria-live="polite">{index + 1} / {images.length}</span><button type="button" className="nf-btn nf-btn--secondary" onClick={() => move(1)}>Berikutnya</button></div> : null}
+      </dialog>
     </div>
   );
 }

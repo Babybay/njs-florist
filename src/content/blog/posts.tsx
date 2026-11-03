@@ -15,14 +15,14 @@ export const blogPosts: BlogPost[] = [
     slug: "panduan-memilih-bunga-untuk-acara-spesial",
     title: "Panduan Memilih Bunga untuk Acara Spesial",
     description:
-      "Setiap acara butuh karakter bunga yang berbeda. Begini cara kami membantu kamu memilih rangkaian yang pas.",
+      "Pertimbangkan warna, jenis bunga, dan suasana acara sebelum memilih buket untuk pernikahan, hari jadi, atau ucapan selamat.",
     date: "2026-04-12",
-    author: "Tim njs Florist",
+    author: "Tim NJS Projects",
     body: (
       <>
         <p>
           Bali punya iklim yang ramah untuk berbagai jenis bunga, tapi tidak semua bunga cocok untuk
-          setiap acara. Berikut beberapa panduan singkat yang sering kami berikan ke klien njs Florist.
+          setiap acara. Berikut beberapa panduan singkat yang sering kami berikan ke klien NJS Projects.
         </p>
         <h2>Wedding</h2>
         <p>
@@ -46,9 +46,9 @@ export const blogPosts: BlogPost[] = [
     slug: "cara-merawat-bunga-segar-agar-tahan-lama",
     title: "Cara Merawat Bunga Segar agar Tahan Lama",
     description:
-      "5 tips sederhana untuk menjaga rangkaian bunga tetap segar hingga seminggu lebih.",
+      "Panduan perawatan buket: mengganti air, merawat batang, dan memilih tempat yang sesuai untuk bunga segar Anda.",
     date: "2026-03-22",
-    author: "Tim njs Florist",
+    author: "Tim NJS Projects",
     body: (
       <>
         <p>
@@ -72,9 +72,9 @@ export const blogPosts: BlogPost[] = [
     slug: "kenapa-rangkaian-custom-lebih-spesial",
     title: "Kenapa Rangkaian Custom Lebih Spesial",
     description:
-      "Setiap orang punya cerita yang berbeda. Rangkaian custom membantu menyampaikannya dengan tepat.",
+      "Kenali pilihan warna, bunga, dan anggaran yang perlu disiapkan sebelum memesan rangkaian custom untuk hadiah atau acara.",
     date: "2026-02-08",
-    author: "Tim njs Florist",
+    author: "Tim NJS Projects",
     body: (
       <>
         <p>
@@ -88,8 +88,9 @@ export const blogPosts: BlogPost[] = [
           <li>Acara korporat dengan branding tertentu</li>
         </ul>
         <p>
-          Ceritakan visi kamu lewat <a href="/custom">halaman custom inquiry</a>. Kami akan membalas
-          dengan mockup, estimasi harga, dan timeline pengiriman dalam 1×24 jam.
+          Sampaikan ide Anda lewat <a href="/custom">formulir rangkaian custom</a>.
+          Tim NJS Projects akan menghubungi Anda untuk membahas pilihan bunga, estimasi harga,
+          dan jadwal yang tersedia.
         </p>
       </>
     ),

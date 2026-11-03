@@ -31,14 +31,14 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "njs Florist Bali",
-    template: "%s | njs Florist",
+    default: "Toko Bunga Dalung & Denpasar, Bali | NJS Projects",
+    template: "%s | NJS Projects",
   },
-  description: "Toko bunga online Bali untuk buket segar, flower box, dan pickup same-day di toko.",
+  description: "Temukan buket bunga, flower box, dan rangkaian custom di NJS Projects. Pilih koleksi untuk hadiah Anda atau diskusikan pesanan di Dalung dan Denpasar, Bali.",
   icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
-    shortcut: "/favicon.ico",
+    icon: [{ url: "/brand-mark.svg?v=4", type: "image/svg+xml" }],
+    apple: "/apple-icon.png?v=4",
+    shortcut: "/favicon.ico?v=4",
   },
 };
 
@@ -52,7 +52,10 @@ export default function RootLayout({
       lang="id"
       className={`${sourceSans.variable} ${geistMono.variable} ${playfair.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <a className="skip-link" href="#main-content">Lewati navigasi</a>
+        {children}
+      </body>
     </html>
   );
 }

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     status: 200,
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": 'inline; filename="njs-florist-pickup.ics"',
+      "Content-Disposition": 'inline; filename="njs-projects-pickup.ics"',
       "Cache-Control": "private, max-age=60",
     },
   });

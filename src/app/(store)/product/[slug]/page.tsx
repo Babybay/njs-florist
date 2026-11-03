@@ -14,6 +14,7 @@ import {
 } from "@/server/services/catalog.service";
 import { calculateVariantAvailabilityMap } from "@/server/services/stock.service";
 import { getSettingNumber, SETTING_KEYS } from "@/server/services/settings.service";
+import { isUiPreview } from "@/lib/ui-preview";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export default async function ProductPage({
   if (!product) notFound();
 
   const [availabilityMap, categoryProducts, cutoffHour] = await Promise.all([
-    calculateVariantAvailabilityMap(product.variants.map((v) => v.id)),
+    isUiPreview ? Promise.resolve(new Map<string, number>()) : calculateVariantAvailabilityMap(product.variants.map((v) => v.id)),
     listProductsByCategorySlug(product.category.slug),
     getSettingNumber(SETTING_KEYS.SAME_DAY_CUTOFF_HOUR),
   ]);
@@ -71,7 +72,7 @@ export default async function ProductPage({
   return (
     <>
       <SiteHeader />
-      <main className="bg-[color:var(--background)]">
+      <main id="main-content" className="store-product-page bg-[color:var(--background)]">
         <div className="mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
           <Breadcrumb
             items={[
@@ -101,13 +102,11 @@ export default async function ProductPage({
                   {formatIDR(lowestPrice)}
                 </p>
                 <span
-                  aria-hidden
                   className={`ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] ${
                     totalInStock > 0 ? "text-emerald-700" : "text-[color:var(--ink-muted)]"
                   }`}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${totalInStock > 0 ? "bg-emerald-600" : "bg-stone-400"}`} />
-                  {totalInStock > 0 ? "Tersedia" : "Stok habis"}
+                  {isUiPreview ? "Contoh produk" : totalInStock > 0 ? "Tersedia" : "Stok habis"}
                 </span>
               </div>
 
@@ -117,18 +116,14 @@ export default async function ProductPage({
 
               {/* studio note */}
               <div className="mt-6 flex items-start gap-3 rounded-[3px] border border-[color:var(--rule)] bg-[color:var(--paper)] px-4 py-3.5 text-[12.5px] leading-[1.6] text-[color:var(--ink-soft)]">
-                <span aria-hidden className="nf-display italic text-xl leading-none text-[color:var(--ink)]">
-                  ✿
-                </span>
                 <span>
-                  Dirangkai dengan tangan di studio kami di Kuta. Pesan
-                  sebelum <strong className="font-semibold text-[color:var(--ink)]">{cutoffHour}.00 WITA</strong> untuk
-                  pickup hari ini.
+                  Dirangkai dengan tangan di studio kami di Bali.
+                  {product.isSameDayEligible ? <> Pesan sebelum <strong className="font-semibold text-[color:var(--ink)]">{cutoffHour}.00 WITA</strong> untuk pickup hari ini, sesuai ketersediaan.</> : null}
                 </span>
               </div>
 
               <div className="mt-8">
-                <AddToCartForm
+                {isUiPreview ? <div className="store-preview-note"><h2>Contoh rangkaian</h2><p>Anda sedang melihat katalog contoh. Pemesanan dan ketersediaan stok belum aktif di preview ini.</p><Link href="/shop" className="nf-btn nf-btn--secondary">Jelajahi koleksi</Link></div> : <AddToCartForm
                   productId={product.id}
                   basePrice={product.basePrice}
                   variants={variantAvailabilities.map((v) => ({
@@ -144,7 +139,7 @@ export default async function ProductPage({
                     name: addon.name,
                     price: addon.price,
                   }))}
-                />
+                />}
               </div>
             </section>
           </div>
@@ -153,21 +148,18 @@ export default async function ProductPage({
             <section className="mt-28">
               <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[color:var(--rule)] pb-7">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[color:var(--ink-muted)]">
-                    Kategori
-                  </p>
                   <h2 className="nf-display mt-3 text-[2rem] leading-[1.05] text-[color:var(--ink)] sm:text-[2.5rem]">
-                    Lainnya di <span className="nf-display italic">{product.category.name}</span>
+                    Lainnya di {product.category.name}
                   </h2>
                 </div>
                 <Link
                   href={`/shop/${product.category.slug}`}
                   className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--ink)] underline-offset-[6px] hover:underline"
                 >
-                  Lihat semua →
+                  Lihat semua
                 </Link>
               </div>
-              <div className="mt-12 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="store-related-grid mt-12">
                 {related.map((p) => (
                   <ProductCard key={p.id} product={p} variant="square" />
                 ))}

@@ -1,21 +1,20 @@
 import Link from "next/link";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { PageKicker, PageTitle } from "@/components/ui/store-ui";
+import { PageTitle } from "@/components/ui/store-ui";
 import { blogPosts } from "@/content/blog/posts";
 
 export const metadata = {
-  title: "Jurnal",
-  description: "Tips dan inspirasi seputar bunga, dari tim njs Florist.",
+  title: "Tips Memilih & Merawat Buket Bunga",
+  description: "Baca panduan memilih bunga untuk hadiah dan acara, merawat buket, serta merencanakan rangkaian custom bersama NJS Projects di Dalung dan Denpasar.",
 };
 
 export default function BlogIndexPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
-        <PageKicker>Jurnal</PageKicker>
-        <PageTitle>Cerita & tips dari florist kami</PageTitle>
+      <main id="main-content" className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+        <PageTitle>Tips bunga, dari memilih hingga merawat</PageTitle>
 
         <ul className="mt-10 grid gap-4">
           {blogPosts.map((post) => (
@@ -42,7 +41,7 @@ export default function BlogIndexPage() {
                 href={`/blog/${post.slug}`}
                 className="mt-3 inline-block text-sm font-semibold uppercase tracking-[0.16em] text-black underline-offset-4 hover:underline"
               >
-                Baca selengkapnya →
+                Baca panduan
               </Link>
             </li>
           ))}

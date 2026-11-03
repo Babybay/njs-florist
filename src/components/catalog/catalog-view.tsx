@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProductCard } from "@/components/product/product-card";
 import type { StoreCategory, StoreProduct } from "@/server/services/catalog.service";
 import { EmptyState } from "@/components/ui/store-ui";
@@ -41,19 +41,28 @@ export function CatalogView({
   filters,
 }: CatalogViewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const title = activeCategoryName ?? (filters.q ? `Hasil untuk "${filters.q}"` : "Semua rangkaian");
+  const filterDialog = useRef<HTMLDialogElement>(null);
+  const filterButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const panel = filterDialog.current;
+    if (!panel) return;
+    if (drawerOpen && !panel.open) panel.showModal();
+    if (!drawerOpen && panel.open) panel.close();
+    if (!drawerOpen) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = original; };
+  }, [drawerOpen]);
+  const title = activeCategoryName ?? (filters.q ? `Hasil untuk "${filters.q}"` : "Koleksi buket & rangkaian bunga");
   const formAction = activeSlug ? `/shop/${activeSlug}` : "/shop";
 
   const hasFilters =
     Boolean(filters.q) || Boolean(filters.min) || Boolean(filters.max) || (filters.sort && filters.sort !== "new");
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+    <div className="store-catalog mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
       {/* heading row */}
       <div className="border-b border-[color:var(--rule)] pb-8">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[color:var(--ink-muted)]">
-          Katalog
-        </p>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-6">
           <h1 className="nf-display text-[2.5rem] leading-[1] text-[color:var(--ink)] sm:text-[3.25rem] lg:text-[3.75rem]">
             {title}
@@ -61,11 +70,14 @@ export function CatalogView({
           <div className="flex items-center gap-3">
             <SortSelect formAction={formAction} filters={filters} />
             <button
+              ref={filterButton}
               type="button"
+              aria-expanded={drawerOpen}
+              aria-controls="catalog-filters"
               onClick={() => setDrawerOpen(true)}
               className="inline-flex items-center gap-2 rounded-full border border-[color:var(--ink)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--ink)] transition hover:bg-[color:var(--ink)] hover:text-[color:var(--cream)] lg:hidden"
             >
-              <span aria-hidden>☰</span> Filter
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4" /></svg> Filter
             </button>
           </div>
         </div>
@@ -96,16 +108,15 @@ export function CatalogView({
         <div>
           {products.length === 0 ? (
             <EmptyState
-              icon="✿"
               title="Tidak ada rangkaian yang cocok"
               description={
                 hasFilters
-                  ? "Coba ubah kata kunci atau range harga di sidebar. Atau hapus semua filter untuk melihat seluruh katalog."
-                  : "Belum ada produk aktif. Cek lagi sebentar."
+                  ? "Coba kata kunci lain atau ubah rentang harga. Hapus filter untuk melihat semua pilihan."
+                  : "Koleksi belum tersedia untuk ditampilkan. Silakan kembali lagi atau diskusikan rangkaian custom."
               }
             />
           ) : (
-            <div className="grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-3 lg:gap-x-6">
               {products.map((p) => (
                 <ProductCard key={p.id} product={p} variant="square" />
               ))}
@@ -115,13 +126,8 @@ export function CatalogView({
       </div>
 
       {/* mobile drawer */}
-      {drawerOpen ? (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-[color:var(--ink)]/45 backdrop-blur-sm"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-[color:var(--background)] p-6 shadow-xl">
+        <dialog ref={filterDialog} id="catalog-filters" className="store-mobile-menu store-filter-menu" aria-label="Filter katalog" onCancel={() => setDrawerOpen(false)} onClose={() => { setDrawerOpen(false); filterButton.current?.focus(); }}>
+          <div className="p-6">
             <div className="flex items-center justify-between">
               <p className="nf-display text-3xl text-[color:var(--ink)]">Filter</p>
               <button
@@ -145,8 +151,7 @@ export function CatalogView({
               />
             </div>
           </div>
-        </div>
-      ) : null}
+        </dialog>
     </div>
   );
 }
@@ -224,6 +229,7 @@ function Sidebar({
           <input
             type="search"
             name="q"
+            aria-label="Cari rangkaian"
             defaultValue={filters.q}
             placeholder="Bunga, buket…"
             className="h-10 w-full rounded-full border border-[color:var(--rule-strong)] bg-[color:var(--paper)] px-4 text-sm text-[color:var(--ink)] placeholder:text-[color:var(--ink-muted)] focus:border-[color:var(--ink)] focus:outline-none"
@@ -367,11 +373,13 @@ function SortSelect({ formAction, filters }: { formAction: string; filters: Cata
       {filters.q ? <input type="hidden" name="q" value={filters.q} /> : null}
       {filters.min ? <input type="hidden" name="min" value={filters.min} /> : null}
       {filters.max ? <input type="hidden" name="max" value={filters.max} /> : null}
-      <label className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--ink-muted)] sm:inline">
+      <label htmlFor="catalog-sort" className="hidden text-[11px] font-semibold uppercase tracking-[0.22em] text-[color:var(--ink-muted)] sm:inline">
         Urutkan
       </label>
       <div className="relative">
         <select
+          id="catalog-sort"
+          aria-label="Urutkan rangkaian"
           name="sort"
           defaultValue={filters.sort}
           onChange={(e) => e.currentTarget.form?.requestSubmit()}

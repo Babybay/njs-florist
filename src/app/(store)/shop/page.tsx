@@ -5,8 +5,8 @@ import { applyCatalogFilters, parseCatalogParams } from "@/lib/catalog-filter";
 import { listActiveProducts, listCategories } from "@/server/services/catalog.service";
 
 export const metadata = {
-  title: "Katalog",
-  description: "Pilih bunga segar, flower box, dan rangkaian custom njs Florist.",
+  title: "Koleksi Buket Bunga & Flower Box",
+  description: "Lihat pilihan buket bunga dan flower box NJS Projects. Bandingkan rangkaian, pilih sesuai anggaran, atau ajukan ide custom untuk momen Anda di Bali.",
 };
 
 export const revalidate = 60;
@@ -34,7 +34,7 @@ export default async function ShopPage({
   return (
     <>
       <SiteHeader />
-      <main className="bg-[color:var(--background)]">
+      <main id="main-content" className="bg-[color:var(--background)]">
         <CatalogView
           categories={categories}
           activeSlug={null}

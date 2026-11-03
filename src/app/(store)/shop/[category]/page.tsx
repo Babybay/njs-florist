@@ -19,8 +19,8 @@ export async function generateMetadata({
   const { category: slug } = await params;
   const category = await getCategoryBySlug(slug);
   return {
-    title: category?.name ?? "Kategori",
-    description: category?.description ?? undefined,
+    title: category ? `${category.name} di Bali` : "Kategori bunga",
+    description: category?.description || (category ? `Lihat koleksi ${category.name} dari NJS Projects di Dalung dan Denpasar, Bali. Temukan pilihan rangkaian dan harga, lalu pilih yang sesuai dengan momen Anda.` : "Jelajahi koleksi buket dan rangkaian bunga NJS Projects di Bali."),
   };
 }
 
