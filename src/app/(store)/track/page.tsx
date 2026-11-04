@@ -11,11 +11,11 @@ export default function TrackLandingPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8">
         <PageKicker>Lacak pesanan</PageKicker>
         <PageTitle>Cek status pesananmu</PageTitle>
         <p className="mt-3 text-stone-600">
-          Masukkan nomor pesanan (mis. BLM-20260516-0042) untuk melihat status terkini tanpa perlu login.
+          Masukkan nomor pesanan dari konfirmasi pembayaran (mis. njs-202611040001) untuk melihat status terkini tanpa perlu login.
         </p>
         <form
           action="/track/lookup"
@@ -30,7 +30,7 @@ export default function TrackLandingPage() {
               id="orderNumber"
               name="orderNumber"
               required
-              placeholder="BLM-20260516-XXXX"
+              placeholder="njs-202611040001"
               className={inputClass("w-full")}
             />
           </div>

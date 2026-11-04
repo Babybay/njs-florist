@@ -1,144 +1,88 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  type CheckoutFormState,
-  submitCheckoutAction,
-} from "@/server/actions/checkout.actions";
-import { Button } from "@/components/ui/store-ui";
+import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { type CheckoutFormState, submitCheckoutAction } from "@/server/actions/checkout.actions";
+import { PickupScheduler } from "@/components/checkout/pickup-scheduler";
+import { formatPickupDate, type PickupSlotAvailability } from "@/lib/pickup-schedule";
 
-type Slot = {
-  id: string;
-  label: string;
-  capacity: number;
-  storeId: string;
-};
-
-type Store = {
-  id: string;
-  name: string;
-  address: string;
-  phone: string | null;
-};
-
+type Store = { id: string; name: string; address: string; phone: string | null };
 const initialState: CheckoutFormState = {};
+const cardSuggestions = [
+  { label: "Ulang tahun", message: "Selamat ulang tahun! Semoga hari ini seindah bunga-bunga ini." },
+  { label: "Terima kasih", message: "Terima kasih sudah membuat hari-hari terasa lebih indah." },
+  { label: "Untukmu", message: "Sedikit bunga, untuk seseorang yang berarti banyak." },
+];
 
-const fieldClass =
-  "rounded-md border border-stone-300 px-3 py-3 font-normal outline-none focus:border-black";
-
-export function CheckoutForm({
-  slots,
-  minDate,
-  stores,
-}: {
-  slots: Slot[];
-  minDate: string;
-  stores: Store[];
+export function CheckoutForm({ minDate, stores, preview = false }: {
+  minDate: string; stores: Store[]; preview?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(submitCheckoutAction, initialState);
   const [selectedStoreId, setSelectedStoreId] = useState(stores[0]?.id ?? "");
-  const storeSlots = slots.filter((slot) => slot.storeId === selectedStoreId);
+  const [selection, setSelection] = useState<{ date: string; slot: PickupSlotAvailability | null }>({ date: minDate, slot: null });
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientPhone, setRecipientPhone] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [cardMessage, setCardMessage] = useState("");
+  const [notes, setNotes] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
+  const errorRef = useRef<HTMLDivElement>(null);
+  const store = stores.find((item) => item.id === selectedStoreId);
+  const onSelectionChange = useCallback((date: string, slot: PickupSlotAvailability | null) => setSelection({ date, slot }), []);
+  useEffect(() => { if (state.error) errorRef.current?.focus(); }, [state]);
 
   return (
-    <form action={formAction} className="grid gap-5 rounded-md border border-stone-200 bg-white p-6">
-      <fieldset className="grid gap-2 rounded-md border border-black/15 bg-[color:var(--blush)] px-4 py-3 text-sm text-black">
-        <legend className="font-semibold uppercase tracking-[0.14em]">Pilih toko pickup *</legend>
-        {stores.map((store) => (
-          <label key={store.id} className="flex cursor-pointer gap-3 rounded-md border border-black/10 bg-white/70 p-3 has-[:checked]:border-black has-[:checked]:bg-white">
-            <input
-              type="radio"
-              name="storeId"
-              value={store.id}
-              required
-              checked={selectedStoreId === store.id}
-              onChange={() => setSelectedStoreId(store.id)}
-              className="mt-1 h-4 w-4 accent-black"
-            />
-            <span className="grid gap-0.5">
-              <span className="font-semibold">{store.name}</span>
-              <span className="text-black/75">{store.address}</span>
-              {store.phone ? <span className="text-black/55">{store.phone}</span> : null}
-            </span>
-          </label>
-        ))}
+    <form action={formAction} className="checkout-form">
+      <fieldset disabled={pending} className="checkout-fields">
+        <fieldset className="checkout-section">
+          <legend><span aria-hidden="true">1</span> Pilih toko pickup</legend>
+          <p className="checkout-section-description">Buket Anda akan disiapkan di toko yang dipilih.</p>
+          <div className="pickup-store-list">
+            {stores.map((item) => <label key={item.id} className="pickup-store">
+              <input type="radio" name="storeId" value={item.id} required checked={selectedStoreId === item.id}
+                onChange={() => { setSelectedStoreId(item.id); setSelection({ date: minDate, slot: null }); }} />
+              <span><strong>{item.name}</strong><span>{item.address}</span>{item.phone ? <small>{item.phone}</small> : null}</span>
+            </label>)}
+          </div>
+          {!stores.length ? <p className="checkout-error" role="status">Belum ada toko yang menerima pickup. Silakan hubungi kami untuk bantuan pemesanan.</p> : null}
+        </fieldset>
+        <fieldset className="checkout-section">
+          <legend><span aria-hidden="true">2</span> Kapan ingin mengambilnya?</legend>
+          <p className="checkout-section-description">Pilih tanggal dan jam yang paling pas. Semua waktu mengikuti WITA.</p>
+          {store ? <PickupScheduler key={selectedStoreId} storeId={selectedStoreId} minDate={minDate} onSelectionChange={onSelectionChange} /> : null}
+          {selection.slot ? <div className="pickup-selection-summary" role="status">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
+            <p><strong>{formatPickupDate(selection.date)} · {selection.slot.startTime}–{selection.slot.endTime} WITA</strong><span>Pickup di {store?.name}</span></p>
+          </div> : null}
+        </fieldset>
+        <fieldset className="checkout-section">
+          <legend><span aria-hidden="true">3</span> Detail pengambil & pemesan</legend>
+          <p className="checkout-section-description">Bisa diambil sendiri atau oleh orang yang Anda tunjuk. Semua kolom bertanda * wajib diisi.</p>
+          <div className="checkout-contact-grid">
+            <label className="checkout-label">Nama pengambil *<input name="recipientName" required maxLength={120} autoComplete="section-pickup name" value={recipientName} onChange={(event) => setRecipientName(event.target.value)} /></label>
+            <label className="checkout-label">Nomor WhatsApp pengambil *<input name="recipientPhone" type="tel" inputMode="tel" required autoComplete="section-pickup tel" minLength={8} maxLength={25} placeholder="Contoh: 0812 3456 7890" value={recipientPhone} onChange={(event) => setRecipientPhone(event.target.value)} /></label>
+            <label className="checkout-label">Nama pemesan *<input name="senderName" required maxLength={120} autoComplete="section-sender name" value={senderName} onChange={(event) => setSenderName(event.target.value)} /></label>
+          </div>
+          <label className="checkout-checkbox"><input type="checkbox" name="isAnonymous" checked={isAnonymous} onChange={(event) => setIsAnonymous(event.target.checked)} /><span>Sembunyikan nama pemesan dari penerima<span className="checkout-help">Tim toko tetap dapat melihat nama Anda untuk memproses pesanan.</span></span></label>
+        </fieldset>
+        <fieldset className="checkout-section">
+          <legend><span aria-hidden="true">4</span> Tambahkan sentuhan Anda <small>Opsional</small></legend>
+          <label className="checkout-label" htmlFor="card-message">Pesan untuk kartu ucapan</label>
+          {!cardMessage ? <div className="checkout-card-suggestions" aria-label="Inspirasi pesan kartu">{cardSuggestions.map((suggestion) => <button key={suggestion.label} type="button" onClick={() => setCardMessage(suggestion.message)}>{suggestion.label}</button>)}</div> : null}
+          <textarea id="card-message" name="cardMessage" rows={4} maxLength={300} placeholder="Kadang, beberapa kata sudah cukup berarti…" value={cardMessage} onChange={(event) => setCardMessage(event.target.value)} aria-describedby="card-message-hint" />
+          <p id="card-message-hint" className="checkout-character-count">Dicetak sesuai yang Anda tulis.<span>{cardMessage.length}/300</span></p>
+          <label className="checkout-label">Catatan untuk tim toko<textarea name="notes" rows={2} maxLength={1000} placeholder="Misalnya: akan diambil oleh teman saya." value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
+          <details className="checkout-discount"><summary>Punya kode diskon?</summary><label className="checkout-label">Kode diskon<input name="discountCode" maxLength={64} autoCapitalize="characters" spellCheck={false} value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} /></label><p className="checkout-help">Kode diperiksa dan diskon dihitung saat pesanan dibuat.</p></details>
+        </fieldset>
       </fieldset>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-black">
-          Nama pengambil *
-          <input name="recipientName" required className={fieldClass} />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-black">
-          Nomor WhatsApp *
-          <input
-            name="recipientPhone"
-            required
-            placeholder="+62…"
-            className={fieldClass}
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-black">
-          Nama pemesan *
-          <input name="senderName" required className={fieldClass} />
-        </label>
-        <label className="flex items-end gap-2 text-sm font-semibold text-black">
-          <input type="checkbox" name="isAnonymous" className="h-4 w-4 accent-black" />
-          Sembunyikan nama pemesan
-        </label>
+      {state.error ? <div ref={errorRef} tabIndex={-1} className="checkout-error" role="alert"><strong>Checkout belum selesai</strong><p>{state.error}</p><p className="checkout-help">Detail Anda tetap tersimpan di halaman ini.</p></div> : null}
+      <div className="checkout-submit-area">
+        <button type="submit" className="checkout-submit" disabled={pending || !selection.slot || !store || preview}>
+          {pending ? "Menyiapkan pesanan…" : preview ? "Pembayaran nonaktif di pratinjau" : "Buat pesanan & lanjut bayar"}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
+        </button>
+        <p className="checkout-help">{!selection.slot ? "Pilih tanggal dan jam pickup untuk melanjutkan." : "Pembayaran diproses melalui Midtrans. Siapkan nomor pesanan saat mengambil buket."}</p>
       </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="grid gap-2 text-sm font-semibold text-black">
-          Tanggal pickup *
-          <input
-            type="date"
-            name="deliveryDate"
-            required
-            min={minDate}
-            className={fieldClass}
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-black">
-          Slot pickup *
-          <select name="slotId" required className={fieldClass}>
-            <option value="">Pilih slot</option>
-            {storeSlots.map((slot) => (
-              <option key={slot.id} value={slot.id}>
-                {slot.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <label className="grid gap-2 text-sm font-semibold text-black">
-        Catatan untuk staff (opsional)
-        <input
-          name="notes"
-          placeholder="Mis. tolong siapkan lebih awal, dll."
-          className={fieldClass}
-        />
-      </label>
-
-      <label className="grid gap-2 text-sm font-semibold text-black">
-        Pesan kartu (opsional)
-        <textarea name="cardMessage" rows={3} maxLength={300} className={fieldClass} />
-      </label>
-
-      <label className="grid gap-2 text-sm font-semibold text-black">
-        Kode diskon (opsional)
-        <input name="discountCode" className={fieldClass} />
-      </label>
-
-      {state.error ? (
-        <p className="rounded-md bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
-          {state.error}
-        </p>
-      ) : null}
-
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "Membuat pesanan…" : "Buat pesanan & lanjut bayar"}
-      </Button>
     </form>
   );
 }

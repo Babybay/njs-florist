@@ -37,6 +37,49 @@ This mode displays sample catalog data and read-only product details. It is not
 a replacement for testing checkout or admin workflows with a real database, and
 it is disabled in production builds.
 
+The checkout at `/checkout` also supports this mode: sample pickup stores,
+calendar dates, full/closed slots, and a sample basket are clearly labeled.
+Creating orders and taking payments are disabled in the preview.
+
+### Pickup scheduling
+
+Checkout checks availability by store and date through
+`GET /api/pickup/availability?storeId=...&from=YYYY-MM-DD&to=YYYY-MM-DD`.
+The endpoint accepts up to 42 days per request and does not cache responses.
+It applies daily capacity/closure overrides and uses Bali time (WITA, UTC+8)
+for dates, elapsed time windows, and the configured same-day cutoff.
+Products that are not eligible for same-day pickup require a later date.
+
+Pending orders hold one pickup place for 15 minutes from order creation.
+Midtrans receives the same expiry window. Checkout rechecks capacity inside a
+Postgres transaction lock before writing the order. The admin pickup calendar
+shows each store separately and includes active payment holds in its totals.
+
+Run `npm run test:pickup` for scheduling and validation regressions. Apply the
+`20261104000000_pickup_availability_index` migration with your normal migration
+deployment before release. This adds a query index; it does not rewrite orders.
+
+Research, audit findings, verification details, and remaining release checks are
+in [the website audit](docs/website-audit-2026-11-04.md).
+
+### Admin workflow review
+
+`/admin` remains protected by authentication and the admin role check. With
+`UI_PREVIEW=1` in development, `/preview/admin` shows sample calendar, slot,
+and settings components with saving disabled. This separate preview does not
+grant access to the protected admin or provide production sample data.
+
+The admin calendar supports whole-day close/open/reset by store. These writes
+run in a transaction and use the same slot/day locks as checkout; closing a day
+does not cancel existing orders. Open preserves custom capacity and notes;
+reset removes the date overrides and restores the recurring templates.
+
+The orders screen supports multiple statuses, WITA creation-date ranges, and a
+separate pickup-date filter. Results are limited to 100 with a visible notice
+to narrow the search. The dashboard counts the full current WITA day and links
+to that day's pickup queue. `npm run test:admin` runs the admin regressions.
+See [the admin audit](docs/admin-audit-2026-11-04.md) for scope and remaining work.
+
 ### Useful scripts
 
 | Script              | What it does                                |

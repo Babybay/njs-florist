@@ -7,6 +7,8 @@ import { validateDeliverySlot } from "@/server/services/delivery.service";
 import { resolveDiscountCode } from "@/server/services/discount.service";
 import { sweepExpiredReservations } from "@/server/services/reservation.service";
 import { getStore } from "@/server/services/store.service";
+import { getSettingNumber, SETTING_KEYS } from "@/server/services/settings.service";
+import { PICKUP_HOLD_MINUTES, pickupDateKey, parsePickupDate } from "@/lib/pickup-schedule";
 
 export async function createCheckoutOrder(input: unknown) {
   const parsed = checkoutInputSchema.parse(input);
@@ -14,7 +16,7 @@ export async function createCheckoutOrder(input: unknown) {
   // Lazy expiry: clean up stale PENDING_PAYMENT reservations before reading stock.
   await sweepExpiredReservations();
 
-  // Reads happen outside the transaction so it stays under the 5s window.
+  // Load the cart before taking transaction locks; capacity is rechecked inside.
   const cart = await db.cart.findUnique({
     where: { id: parsed.cartId },
     include: {
@@ -40,7 +42,16 @@ export async function createCheckoutOrder(input: unknown) {
     throw new Error("Toko pickup tidak valid. Silakan pilih toko lain.");
   }
 
-  await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date, parsed.storeId);
+  const cutoffHour = await getSettingNumber(SETTING_KEYS.SAME_DAY_CUTOFF_HOUR);
+  const pickupDay = pickupDateKey(parsed.delivery.date);
+  const needsPreparation = cart.items.some((item) => !item.variant.product.isSameDayEligible);
+  function validatePreparationTime() {
+    if (pickupDay === pickupDateKey() && needsPreparation) {
+      throw new Error("Ada rangkaian yang perlu disiapkan lebih awal. Pilih jadwal pickup mulai besok.");
+    }
+  }
+  validatePreparationTime();
+  await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date, parsed.storeId, { cutoffHour });
 
   const basePricing = await calculateCartPricing(cart);
   const discount = await resolveDiscountCode(parsed.discountCode, basePricing.subtotal);
@@ -49,8 +60,14 @@ export async function createCheckoutOrder(input: unknown) {
   // Atomic write block: order, items, reservations, discount usage.
   const order = await db.$transaction(
     async (tx) => {
+      // Transaction-scoped locks work with pooled Postgres connections. Recheck
+      // capacity after acquiring the lock, so two buyers cannot take the last slot.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pickup:${parsed.delivery.slotId}:${pickupDay}`}))`;
+      validatePreparationTime();
+      await validateDeliverySlot(parsed.delivery.slotId, parsed.delivery.date, parsed.storeId, { client: tx, cutoffHour });
       // Daily-reset sequence: count orders already placed today (WITA), +1.
       const { start, end, y, m, d } = witaDayRange();
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`order-number:${y}-${m}-${d}`}))`;
       const todaysOrders = await tx.order.count({
         where: { createdAt: { gte: start, lt: end } },
       });
@@ -71,7 +88,7 @@ export async function createCheckoutOrder(input: unknown) {
           senderName: parsed.recipient.senderName,
           isAnonymous: parsed.recipient.isAnonymous,
           cardMessage: parsed.recipient.cardMessage,
-          deliveryDate: parsed.delivery.date,
+          deliveryDate: parsePickupDate(pickupDay),
           deliverySlotId: parsed.delivery.slotId,
           deliveryAddress: parsed.delivery.address,
           deliveryNotes: parsed.delivery.notes,
@@ -122,7 +139,7 @@ export async function createCheckoutOrder(input: unknown) {
               inventoryItemId: recipe.inventoryItemId,
               quantity: requiredQty,
               status: "ACTIVE",
-              expiresAt: addMinutes(new Date(), 15),
+              expiresAt: addMinutes(created.createdAt, PICKUP_HOLD_MINUTES),
             },
           });
         }

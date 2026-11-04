@@ -26,6 +26,7 @@ const LABEL: Record<OrderStatus, string> = {
 
 function formatDateTime(d: Date) {
   return `${formatShortDate(d.toISOString())} ${d.toLocaleTimeString("id-ID", {
+    timeZone: "Asia/Makassar",
     hour: "2-digit",
     minute: "2-digit",
   })}`;

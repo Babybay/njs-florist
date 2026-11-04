@@ -1,0 +1,9 @@
+.admin-workspace { width: 100%; min-width: 0; }
+.admin-workspace input, .admin-workspace select, .admin-workspace textarea { min-width: 0; max-width: 100%; font-size: 16px; caret-color: var(--store-accent); }
+.admin-workspace input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), .admin-workspace select { min-height: 44px; }
+.admin-workspace button { cursor: pointer; }
+.admin-workspace button:disabled { cursor: not-allowed; }
+.admin-workspace :is(input,select,textarea,button,a):focus-visible { outline-color: var(--store-accent); }
+.admin-mobile-menu { position: fixed; inset: 0 auto 0 0; margin: 0; padding: 0; width: min(88vw, 320px); height: 100dvh; max-width: none; max-height: none; border: 0; color: var(--store-ink); background: var(--paper); }
+.admin-mobile-menu::backdrop { background: color-mix(in srgb, var(--store-ink) 45%, transparent); }
+@media (prefers-reduced-motion: reduce) { .admin-workspace nav a { transition: none; } }

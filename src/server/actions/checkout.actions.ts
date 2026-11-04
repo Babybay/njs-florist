@@ -5,6 +5,9 @@ import { readCartSessionId } from "@/lib/cart-session";
 import { getCurrentUser } from "@/lib/auth";
 import { loadCart } from "@/server/services/cart.service";
 import { createCheckoutOrder } from "@/server/services/checkout.service";
+import { parsePickupDate } from "@/lib/pickup-schedule";
+import { isUiPreview } from "@/lib/ui-preview";
+import { ZodError } from "zod";
 
 export type CheckoutFormState = {
   error?: string;
@@ -14,6 +17,7 @@ export async function submitCheckoutAction(
   _previousState: CheckoutFormState,
   formData: FormData,
 ): Promise<CheckoutFormState> {
+  if (isUiPreview) return { error: "Mode pratinjau: pesanan dan pembayaran dinonaktifkan." };
   const sessionId = await readCartSessionId();
   if (!sessionId) return { error: "Keranjang tidak ditemukan." };
 
@@ -37,8 +41,10 @@ export async function submitCheckoutAction(
     return { error: "Mohon lengkapi semua field wajib (termasuk toko pickup)." };
   }
 
-  const deliveryDate = new Date(`${deliveryDateRaw}T09:00:00`);
-  if (Number.isNaN(deliveryDate.getTime())) {
+  let deliveryDate: Date;
+  try {
+    deliveryDate = parsePickupDate(deliveryDateRaw);
+  } catch {
     return { error: "Tanggal pickup tidak valid." };
   }
 
@@ -55,12 +61,9 @@ export async function submitCheckoutAction(
       discountCode,
     });
   } catch (error) {
+    if (error instanceof ZodError) return { error: error.issues[0]?.message ?? "Periksa detail pesanan Anda." };
     return { error: error instanceof Error ? error.message : "Checkout gagal." };
   }
 
   redirect(`/payment/pending?order=${encodeURIComponent(result.order.orderNumber)}`);
-}
-
-export async function createCheckoutOrderAction(input: unknown) {
-  return createCheckoutOrder(input);
 }

@@ -3,7 +3,6 @@
 import { useActionState } from "react";
 import {
   type AuthFormState,
-  signInWithGoogleAction,
   signUpWithPasswordAction,
 } from "@/server/actions/auth.actions";
 import { Button } from "@/components/ui/store-ui";
@@ -18,22 +17,6 @@ export function SignUpForm({ next }: { next: string }) {
 
   return (
     <div className="grid gap-6 rounded-md border border-stone-200 bg-white p-6">
-      <form action={signInWithGoogleAction}>
-        <input type="hidden" name="next" value={next} />
-        <button
-          type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-md border border-stone-300 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:border-black hover:bg-[color:var(--blush)]"
-        >
-          Daftar dengan Google
-        </button>
-      </form>
-
-      <div className="flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-black/40">
-        <span className="h-px flex-1 bg-stone-200" />
-        atau email
-        <span className="h-px flex-1 bg-stone-200" />
-      </div>
-
       <form action={formAction} className="grid gap-4">
         <input type="hidden" name="next" value={next} />
         <label className="grid gap-2 text-sm font-semibold text-black">

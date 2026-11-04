@@ -2,12 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { createDeliverySlotAction } from "@/server/actions/delivery-slot.actions";
+import { Button, inputClass } from "@/components/admin/ui";
 
-export function SlotCreateForm({ stores }: { stores: { id: string; name: string }[] }) {
+export function SlotCreateForm({ stores, readOnly = false, defaultStoreId }: { stores: { id: string; name: string }[]; readOnly?: boolean; defaultStoreId?: string }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function submit(formData: FormData) {
+    if (readOnly) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -24,25 +26,20 @@ export function SlotCreateForm({ stores }: { stores: { id: string; name: string 
     <form
       id="slot-create-form"
       action={submit}
-      className="grid gap-3 rounded-lg border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_1.4fr_0.6fr_0.6fr_0.6fr_auto]"
+      className="grid gap-3 border-b border-stone-200 pb-6 sm:grid-cols-2 lg:grid-cols-3"
     >
-      <select name="storeId" required defaultValue={stores[0]?.id ?? ""} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500">
+      <label className="grid gap-1.5 text-sm font-medium">Toko pickup<select name="storeId" required defaultValue={defaultStoreId ?? stores[0]?.id ?? ""} className={inputClass()}>
         {stores.map((s) => (
           <option key={s.id} value={s.id}>{s.name}</option>
         ))}
-      </select>
-      <input name="label" required placeholder="Label (mis. Sore 17-19)" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-      <input name="startTime" required placeholder="HH:MM" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-      <input name="endTime" required placeholder="HH:MM" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-      <input name="capacity" type="number" min={1} required placeholder="Kapasitas" className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-rose-900 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-800 disabled:bg-stone-400"
-      >
-        {pending ? "..." : "+ Slot"}
-      </button>
-      {error ? <p className="col-span-full text-sm font-semibold text-rose-700">{error}</p> : null}
+      </select></label>
+      <label className="grid gap-1.5 text-sm font-medium">Nama slot<input name="label" required maxLength={60} placeholder="Misalnya: Sore" className={inputClass()} /></label>
+      <label className="grid gap-1.5 text-sm font-medium">Kapasitas per hari<input name="capacity" type="number" min={1} max={500} step={1} required placeholder="Jumlah pesanan" className={inputClass()} /></label>
+      <label className="grid gap-1.5 text-sm font-medium">Mulai (WITA)<input name="startTime" type="time" required className={inputClass()} /></label>
+      <label className="grid gap-1.5 text-sm font-medium">Selesai (WITA)<input name="endTime" type="time" required className={inputClass()} /></label>
+      <Button type="submit" disabled={pending || readOnly || !stores.length} className="self-end">{pending ? "Menambahkan…" : "Tambah slot"}</Button>
+      <p className="col-span-full text-sm leading-6 text-stone-600">Template berulang setiap hari. Gunakan kalender untuk hari libur atau kapasitas tanggal khusus.</p>
+      {error ? <p role="alert" className="col-span-full text-sm font-semibold text-rose-700">{error}</p> : null}
     </form>
   );
 }

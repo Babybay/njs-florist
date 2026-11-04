@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { startOfDay } from "@/lib/utils";
+import { addPickupDays, parsePickupDate, pickupDateKey } from "@/lib/pickup-schedule";
 import { getSetting, SETTING_KEYS } from "@/server/services/settings.service";
 
 const ACTIVE_PICKUP_STATUSES = [
@@ -19,11 +19,7 @@ function pad(n: number) {
 function formatLocalDateTime(date: Date, time: string) {
   // Local "floating" datetime per RFC 5545 (no Z suffix).
   // Format: YYYYMMDDTHHmmss
-  const [hh = "0", mm = "0"] = time.split(":");
-  const y = date.getFullYear();
-  const mo = pad(date.getMonth() + 1);
-  const d = pad(date.getDate());
-  return `${y}${mo}${d}T${pad(Number(hh))}${pad(Number(mm))}00`;
+  return `${pickupDateKey(date).replaceAll("-", "")}T${time.replace(":", "")}00`;
 }
 
 function formatUtcTimestamp(date: Date) {
@@ -52,10 +48,9 @@ function foldLine(line: string) {
 }
 
 export async function buildCalendarFeed(): Promise<string> {
-  const horizonStart = startOfDay(new Date());
-  horizonStart.setDate(horizonStart.getDate() - 1); // include yesterday so today's pickups stay visible
-  const horizonEnd = startOfDay(new Date());
-  horizonEnd.setDate(horizonEnd.getDate() + 120);
+  const today = pickupDateKey();
+  const horizonStart = parsePickupDate(addPickupDays(today, -1));
+  const horizonEnd = parsePickupDate(addPickupDays(today, 120));
 
   const [orders, slotRows, businessName] = await Promise.all([
     db.order.findMany({
@@ -99,6 +94,15 @@ export async function buildCalendarFeed(): Promise<string> {
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeText(`${businessName} — Pickup`)}`,
     "X-WR-TIMEZONE:Asia/Makassar",
+    "BEGIN:VTIMEZONE",
+    "TZID:Asia/Makassar",
+    "BEGIN:STANDARD",
+    "DTSTART:19700101T000000",
+    "TZOFFSETFROM:+0800",
+    "TZOFFSETTO:+0800",
+    "TZNAME:WITA",
+    "END:STANDARD",
+    "END:VTIMEZONE",
   ];
 
   for (const order of orders) {
@@ -126,8 +130,8 @@ export async function buildCalendarFeed(): Promise<string> {
     lines.push(foldLine(`UID:order-${order.id}@njsflorist.id`));
     lines.push(`DTSTAMP:${formatUtcTimestamp(now)}`);
     lines.push(`LAST-MODIFIED:${formatUtcTimestamp(order.updatedAt)}`);
-    lines.push(`DTSTART:${dtStart}`);
-    lines.push(`DTEND:${dtEnd}`);
+    lines.push(`DTSTART;TZID=Asia/Makassar:${dtStart}`);
+    lines.push(`DTEND;TZID=Asia/Makassar:${dtEnd}`);
     lines.push(
       foldLine(
         `SUMMARY:${escapeText(`Pickup ${order.orderNumber} — ${order.recipientName}`)}`,

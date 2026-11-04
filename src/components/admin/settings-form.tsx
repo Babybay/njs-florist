@@ -7,15 +7,17 @@ import { useAdminFormMemory } from "@/components/admin/use-admin-form-memory";
 
 type SettingsFormProps = {
   settings: Record<string, string>;
+  readOnly?: boolean;
 };
 
-export function SettingsForm({ settings }: SettingsFormProps) {
+export function SettingsForm({ settings, readOnly = false }: SettingsFormProps) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const { formRef, hasMemory, saveMemory, clearMemory } = useAdminFormMemory("admin-form:settings");
+  const { formRef, hasMemory, saveMemory, clearMemory } = useAdminFormMemory(readOnly ? "admin-form:settings:preview" : "admin-form:settings");
 
   function submit(formData: FormData) {
+    if (readOnly) return;
     setError(null);
     setMessage(null);
     startTransition(async () => {
@@ -33,9 +35,9 @@ export function SettingsForm({ settings }: SettingsFormProps) {
     <form
       ref={formRef}
       action={submit}
-      onInput={saveMemory}
-      onChange={saveMemory}
-      onSubmit={saveMemory}
+      onInput={readOnly ? undefined : saveMemory}
+      onChange={readOnly ? undefined : saveMemory}
+      onSubmit={readOnly ? undefined : saveMemory}
       className="grid gap-5 rounded-lg border border-stone-200/80 bg-white p-5"
     >
       {hasMemory ? (
@@ -52,15 +54,20 @@ export function SettingsForm({ settings }: SettingsFormProps) {
           label="Cutoff same-day (jam, 0–23)"
           name="same_day_cutoff_hour"
           type="number"
+          required
+          step={1}
           min={0}
           max={23}
           defaultValue={settings.same_day_cutoff_hour}
-          hint="Pelanggan tidak bisa memilih tanggal pickup hari ini setelah jam ini."
+          hint="Jam Bali (WITA). Pickup hari ini ditutup mulai tepat jam ini; slot yang sudah dimulai juga tidak bisa dipesan."
         />
         <Field
           label="Biaya layanan tambahan (IDR)"
           name="delivery_fee"
           type="number"
+          required
+          step={1}
+          max={1000000000}
           min={0}
           defaultValue={settings.delivery_fee}
           hint="Biarkan 0 untuk pickup gratis."
@@ -87,11 +94,11 @@ export function SettingsForm({ settings }: SettingsFormProps) {
       </Section>
 
       <div className="flex items-center gap-3 border-t border-stone-200/80 pt-4">
-        <Button type="submit" disabled={pending} variant="primary">
+        <Button type="submit" disabled={pending || readOnly} variant="primary">
           {pending ? "Menyimpan..." : "Simpan pengaturan"}
         </Button>
-        {message ? <p className="text-xs font-medium text-emerald-700">{message}</p> : null}
-        {error ? <p className="text-xs font-medium text-rose-700">{error}</p> : null}
+        {message ? <p role="status" className="text-sm font-medium text-emerald-700">{message}</p> : null}
+        {error ? <p role="alert" className="text-sm font-medium text-rose-700">{error}</p> : null}
       </div>
     </form>
   );

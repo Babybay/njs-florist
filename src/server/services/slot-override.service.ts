@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { addPickupDays, pickupDateKey, pickupDateColumn } from "@/lib/pickup-schedule";
 
 export const overrideUpsertSchema = z.object({
   slotId: z.string().min(1),
@@ -10,8 +11,7 @@ export const overrideUpsertSchema = z.object({
 });
 
 function dateOnly(d: Date): Date {
-  const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  return utc;
+  return pickupDateColumn(pickupDateKey(d));
 }
 
 export async function upsertSlotOverride(input: unknown) {
@@ -22,32 +22,35 @@ export async function upsertSlotOverride(input: unknown) {
   const hasCapacity = parsed.capacity !== null && parsed.capacity !== undefined;
   const hasActive = parsed.isActive !== null && parsed.isActive !== undefined;
 
-  if (!hasCapacity && !hasActive && !parsed.note) {
-    return db.deliverySlotOverride.deleteMany({
-      where: { slotId: parsed.slotId, date },
+  return db.$transaction(async (tx) => {
+    const dateKey = pickupDateKey(date);
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pickup:${parsed.slotId}:${dateKey}`}))`;
+    if (!hasCapacity && !hasActive && !parsed.note) {
+      return tx.deliverySlotOverride.deleteMany({ where: { slotId: parsed.slotId, date } });
+    }
+    return tx.deliverySlotOverride.upsert({
+      where: { slotId_date: { slotId: parsed.slotId, date } },
+      create: {
+        slotId: parsed.slotId,
+        date,
+        capacity: hasCapacity ? parsed.capacity : null,
+        isActive: hasActive ? parsed.isActive : null,
+        note: parsed.note ?? null,
+      },
+      update: {
+        capacity: hasCapacity ? parsed.capacity : null,
+        isActive: hasActive ? parsed.isActive : null,
+        note: parsed.note ?? null,
+      },
     });
-  }
-
-  return db.deliverySlotOverride.upsert({
-    where: { slotId_date: { slotId: parsed.slotId, date } },
-    create: {
-      slotId: parsed.slotId,
-      date,
-      capacity: hasCapacity ? parsed.capacity : null,
-      isActive: hasActive ? parsed.isActive : null,
-      note: parsed.note ?? null,
-    },
-    update: {
-      capacity: hasCapacity ? parsed.capacity : null,
-      isActive: hasActive ? parsed.isActive : null,
-      note: parsed.note ?? null,
-    },
   });
 }
 
 export async function deleteSlotOverride(slotId: string, date: Date) {
-  return db.deliverySlotOverride.deleteMany({
-    where: { slotId, date: dateOnly(date) },
+  return db.$transaction(async (tx) => {
+    const dateKey = pickupDateKey(date);
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pickup:${slotId}:${dateKey}`}))`;
+    return tx.deliverySlotOverride.deleteMany({ where: { slotId, date: dateOnly(date) } });
   });
 }
 
@@ -59,8 +62,7 @@ export async function getOverridesForDate(date: Date) {
 
 export async function listUpcomingOverrides(days = 60) {
   const today = dateOnly(new Date());
-  const horizon = new Date(today);
-  horizon.setDate(horizon.getDate() + days);
+  const horizon = pickupDateColumn(addPickupDays(pickupDateKey(today), days));
 
   return db.deliverySlotOverride.findMany({
     where: { date: { gte: today, lte: horizon } },

@@ -51,7 +51,7 @@ export default async function CategoryPage({
   return (
     <>
       <SiteHeader />
-      <main className="bg-[color:var(--background)]">
+      <main id="main-content" className="bg-[color:var(--background)]">
         <CatalogView
           categories={allCategories}
           activeSlug={category.slug}

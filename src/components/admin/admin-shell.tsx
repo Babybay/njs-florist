@@ -1,12 +1,13 @@
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { BackButton } from "@/components/admin/back-button";
+import { AdminIcon } from "@/components/admin/admin-icon";
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#fbfbfa] text-stone-900">
+    <div className="admin-workspace min-h-screen bg-[color:var(--background)] text-stone-900">
       <AdminSidebar />
-      <main className="px-4 py-6 sm:px-6 lg:ml-64 lg:px-12 lg:py-10">
-        <div className="mx-auto max-w-5xl">
+      <main id="main-content" className="min-w-0 px-4 py-6 sm:px-6 lg:ml-64 lg:px-12 lg:py-10">
+        <div className="mx-auto min-w-0 max-w-5xl">
           <div className="mb-2">
             <BackButton />
           </div>
@@ -33,7 +34,7 @@ export function AdminPageHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            {icon ? <span className="text-3xl leading-none">{icon}</span> : null}
+            {icon ? <AdminIcon name={title} className="h-7 w-7 shrink-0 text-rose-800" /> : null}
             <h1 className="text-3xl font-semibold tracking-tight text-stone-900">{title}</h1>
           </div>
           {description ? (

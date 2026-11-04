@@ -8,6 +8,7 @@ import { listStores } from "@/server/services/store.service";
 import { slotLabelsFor } from "@/server/services/slot-display.service";
 import { statusLabel } from "@/lib/order-display";
 import type { OrderStatus } from "@/types/order";
+import { ADMIN_ORDER_STATUSES, parseAdminOrderFilters, type AdminOrderParams } from "@/lib/admin-order-filters";
 
 export const metadata = {
   title: "Admin Pesanan",
@@ -15,86 +16,65 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-const ALL_STATUSES: OrderStatus[] = [
-  "PENDING_PAYMENT",
-  "PAID",
-  "PREPARING",
-  "READY_FOR_DELIVERY",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "COMPLETED",
-  "CANCELLED",
-  "EXPIRED",
-  "REFUNDED",
-  "PAYMENT_FAILED",
-];
+const ALL_STATUSES = ADMIN_ORDER_STATUSES;
 
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    status?: string;
-    q?: string;
-    from?: string;
-    to?: string;
-    store?: string;
-  }>;
+  searchParams: Promise<AdminOrderParams>;
 }) {
   const sp = await searchParams;
-  const selectedStatuses = sp.status
-    ? (sp.status.split(",").filter((s) => ALL_STATUSES.includes(s as OrderStatus)) as OrderStatus[])
-    : [];
+  const { statuses: selectedStatuses, filters, errors } = parseAdminOrderFilters(sp);
 
   const stores = await listStores();
-  const orders = await listOrders({
-    statuses: selectedStatuses.length ? selectedStatuses : undefined,
-    q: sp.q?.trim() || undefined,
-    fromDate: sp.from ? new Date(sp.from) : undefined,
-    toDate: sp.to ? new Date(`${sp.to}T23:59:59`) : undefined,
-    storeId: sp.store || undefined,
-  });
+  const orders = errors.length ? [] : await listOrders(filters);
 
   const slotLabels = await slotLabelsFor(orders.map((o) => o.deliverySlotId));
-  const hasFilters = sp.status || sp.q || sp.from || sp.to || sp.store;
+  const hasFilters = sp.status || sp.q || sp.from || sp.to || sp.store || sp.pickup;
 
   return (
     <>
       <AdminPageHeader
         title="Pesanan"
         icon="🧾"
-        description="Cari berdasarkan nomor pesanan / pengambil, atau filter status dan rentang tanggal."
+        description="Cari pesanan, filter tanggal masuk atau jadwal pickup. Semua tanggal mengikuti WITA."
       />
 
       <form
         method="get"
         className="mb-4 rounded-lg border border-stone-200/80 bg-white p-4"
       >
-        <div className="grid gap-2 md:grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_auto]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <label className="grid gap-1.5 text-sm">Cari pesanan
           <input
             name="q"
+            maxLength={200}
             defaultValue={sp.q ?? ""}
             placeholder="Cari nomor pesanan, nama, atau no HP..."
             className={inputClass()}
-          />
-          <select name="store" defaultValue={sp.store ?? ""} className={inputClass()}>
+          /></label>
+          <label className="grid gap-1.5 text-sm">Toko pickup<select name="store" defaultValue={sp.store ?? ""} className={inputClass()}>
             <option value="">Semua toko</option>
             {stores.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
-          </select>
+          </select></label>
+          <label className="grid gap-1.5 text-sm">Tanggal pickup<input type="date" name="pickup" defaultValue={sp.pickup ?? ""} className={inputClass()} /></label>
+          <label className="grid gap-1.5 text-sm">Pesanan masuk mulai
           <input
             name="from"
             type="date"
             defaultValue={sp.from ?? ""}
             className={inputClass()}
-          />
+          /></label>
+          <label className="grid gap-1.5 text-sm">Pesanan masuk sampai
           <input
             name="to"
             type="date"
             defaultValue={sp.to ?? ""}
             className={inputClass()}
-          />
-          <Button type="submit" variant="primary">Filter</Button>
+          /></label>
+          <Button type="submit" variant="primary" className="self-end">Terapkan filter</Button>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -109,7 +89,7 @@ export default async function AdminOrdersPage({
                     : "border-stone-200 bg-white text-stone-600 hover:bg-stone-100"
                 }`}
               >
-                <input type="checkbox" name="status" value={s} defaultChecked={checked} className="hidden" />
+                <input type="checkbox" name="status" value={s} defaultChecked={checked} className="mr-2 h-4 w-4 accent-rose-800" />
                 {statusLabel(s)}
               </label>
             );
@@ -124,6 +104,8 @@ export default async function AdminOrdersPage({
           ) : null}
         </div>
       </form>
+      {errors.length ? <p role="alert" className="mb-4 text-sm text-rose-800">{errors.join(" ")}</p> : null}
+      {orders.length >= 100 ? <p role="status" className="mb-4 text-sm text-stone-600">Menampilkan 100 pesanan terbaru. Persempit tanggal, toko, atau pencarian untuk melihat pesanan lainnya.</p> : null}
 
       {orders.length === 0 ? (
         <EmptyState

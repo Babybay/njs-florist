@@ -2,15 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/services/auth.service";
+import { pickupDateColumn } from "@/lib/pickup-schedule";
+import { setStoreDayAvailability } from "@/server/services/store-day.service";
 import {
   deleteSlotOverride,
   upsertSlotOverride,
 } from "@/server/services/slot-override.service";
 
 function parseDate(raw: string): Date {
-  const d = new Date(`${raw}T00:00:00Z`);
-  if (Number.isNaN(d.getTime())) throw new Error("Tanggal tidak valid.");
-  return d;
+  return pickupDateColumn(raw);
 }
 
 export async function upsertSlotOverrideAction(formData: FormData) {
@@ -50,4 +50,15 @@ export async function deleteSlotOverrideAction(formData: FormData) {
 
   await deleteSlotOverride(slotId, parseDate(dateRaw));
   revalidatePath("/admin/delivery");
+}
+
+export async function setStoreDayAvailabilityAction(formData: FormData) {
+  await requireAdmin();
+  const storeId = String(formData.get("storeId") ?? "").trim();
+  const date = String(formData.get("date") ?? "");
+  const mode = String(formData.get("mode") ?? "");
+  if (!storeId || !["open", "close", "reset"].includes(mode)) throw new Error("Pilih toko, tanggal, dan tindakan yang valid.");
+  const result = await setStoreDayAvailability(storeId, date, mode as "open" | "close" | "reset");
+  revalidatePath("/admin/delivery");
+  return result;
 }

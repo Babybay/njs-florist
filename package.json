@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:pickup": "tsx --test scripts/test-pickup-schedule.ts",
+    "test:admin": "tsx --test scripts/test-admin-workflows.ts",
     "postinstall": "prisma generate --schema src/prisma/schema.prisma",
     "db:generate": "prisma generate --schema src/prisma/schema.prisma",
     "db:migrate": "prisma migrate dev --schema src/prisma/schema.prisma",

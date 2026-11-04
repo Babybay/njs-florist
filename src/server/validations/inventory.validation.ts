@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const stockMovementInputSchema = z.object({
+  inventoryItemId: z.string().min(1, "Pilih bahan baku."),
+  type: z.enum(["IN", "OUT", "ADJUSTMENT", "RESERVED", "RELEASED"]),
+  quantity: z.number().int("Jumlah stok harus berupa bilangan bulat.").min(0, "Jumlah stok tidak boleh negatif.").max(2147483647),
+  reason: z.string().max(1000).optional(),
+  orderId: z.string().optional(),
+  createdById: z.string().optional(),
+}).refine((input) => input.type === "ADJUSTMENT" || input.quantity > 0, { message: "Jumlah stok masuk atau keluar harus lebih dari 0.", path: ["quantity"] });
+
 export const inventoryItemCreateSchema = z.object({
   name: z.string().min(1),
   unit: z.string().min(1),
