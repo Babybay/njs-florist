@@ -1,61 +1,21 @@
 import { db } from "@/lib/db";
-import { endOfDay, isSameCalendarDay, startOfDay } from "@/lib/utils";
-import { getSettingNumber, SETTING_KEYS } from "@/server/services/settings.service";
 import { getOverridesInRange } from "@/server/services/slot-override.service";
+import type { Prisma } from "@prisma/client";
+import { getPickupAvailability, occupyingPickupOrders } from "@/server/services/pickup-availability.service";
+import { addPickupDays, pickupDateKey, pickupDateColumn, pickupDayBounds } from "@/lib/pickup-schedule";
 
-const OCCUPYING_STATUSES = [
-  "PAID",
-  "PREPARING",
-  "READY_FOR_DELIVERY",
-  "OUT_FOR_DELIVERY",
-  "DELIVERED",
-  "COMPLETED",
-] as const;
-
-function dateOnly(d: Date) {
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-}
-
-export async function validateDeliverySlot(slotId: string, date: Date, storeId: string) {
-  const slot = await db.deliverySlot.findUnique({ where: { id: slotId } });
-  if (!slot) throw new Error("Delivery slot is not available.");
-  if (slot.storeId !== storeId) {
-    throw new Error("Slot pickup tidak tersedia untuk toko yang dipilih.");
-  }
-
-  const override = await db.deliverySlotOverride.findUnique({
-    where: { slotId_date: { slotId, date: dateOnly(date) } },
-  });
-
-  const effectiveActive = override?.isActive ?? slot.isActive;
-  const effectiveCapacity = override?.capacity ?? slot.capacity;
-
-  if (!effectiveActive) {
-    throw new Error("Delivery slot is not available on this date.");
-  }
-
-  const now = new Date();
-  if (date < startOfDay(now)) {
-    throw new Error("Delivery date cannot be in the past.");
-  }
-
-  const cutoffHour = await getSettingNumber(SETTING_KEYS.SAME_DAY_CUTOFF_HOUR);
-  if (isSameCalendarDay(date, now) && now.getHours() >= cutoffHour) {
-    throw new Error(`Same-day delivery cutoff (${cutoffHour}:00) has passed.`);
-  }
-
-  const occupied = await db.order.count({
-    where: {
-      deliverySlotId: slotId,
-      deliveryDate: { gte: startOfDay(date), lte: endOfDay(date) },
-      status: { in: [...OCCUPYING_STATUSES] },
-    },
-  });
-
-  if (occupied >= effectiveCapacity) {
-    throw new Error("Delivery slot is fully booked.");
-  }
-
+export async function validateDeliverySlot(
+  slotId: string, date: Date, storeId: string,
+  options: { client?: Prisma.TransactionClient; cutoffHour?: number } = {},
+) {
+  const key = pickupDateKey(date);
+  const availability = await getPickupAvailability(storeId, key, key, options);
+  const slot = availability.days[0]?.slots.find((item) => item.id === slotId);
+  if (!slot) throw new Error("Slot pickup tidak tersedia untuk toko yang dipilih.");
+  if (slot.status === "past") throw new Error("Tanggal atau jam pickup sudah lewat. Pilih jadwal lain.");
+  if (slot.status === "cutoff") throw new Error(`Batas pickup hari ini (${availability.cutoffHour}.00 WITA) sudah lewat. Pilih tanggal berikutnya.`);
+  if (slot.status === "closed") throw new Error("Slot pickup tutup pada tanggal ini. Pilih jadwal lain.");
+  if (slot.status === "full") throw new Error("Slot pickup baru saja penuh. Pilih jam atau tanggal lain.");
   return slot;
 }
 
@@ -78,6 +38,8 @@ export type SlotUtilization = {
     isActive: boolean;
     isOverridden: boolean;
     note: string | null;
+    overrideCapacity: number | null;
+    overrideIsActive: boolean | null;
   }[];
 };
 
@@ -88,17 +50,11 @@ function isoDate(d: Date) {
 export async function computeSlotUtilization(
   options: { from?: Date; to?: Date; days?: number } = {},
 ): Promise<SlotUtilization[]> {
-  const from = options.from ? startOfDay(options.from) : startOfDay(new Date());
-  const to = options.to
-    ? startOfDay(options.to)
-    : (() => {
-        const d = new Date(from);
-        d.setDate(d.getDate() + (options.days ?? 14) - 1);
-        return d;
-      })();
-
-  const exclusiveEnd = new Date(to);
-  exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+  const now = new Date();
+  const fromKey = pickupDateKey(options.from ?? now);
+  const toKey = options.to ? pickupDateKey(options.to) : addPickupDays(fromKey, (options.days ?? 14) - 1);
+  const from = pickupDateColumn(fromKey);
+  const to = pickupDateColumn(toKey);
 
   const totalDays =
     Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)) + 1;
@@ -107,8 +63,8 @@ export async function computeSlotUtilization(
     db.deliverySlot.findMany({ orderBy: { startTime: "asc" } }),
     db.order.findMany({
       where: {
-        deliveryDate: { gte: from, lt: exclusiveEnd },
-        status: { in: [...OCCUPYING_STATUSES] },
+        deliveryDate: { gte: pickupDayBounds(fromKey).start, lt: pickupDayBounds(toKey).end },
+        ...occupyingPickupOrders(now),
       },
       select: { deliverySlotId: true, deliveryDate: true },
     }),
@@ -117,7 +73,7 @@ export async function computeSlotUtilization(
 
   const counts = new Map<string, number>();
   for (const order of orders) {
-    const day = isoDate(startOfDay(order.deliveryDate));
+    const day = pickupDateKey(order.deliveryDate);
     counts.set(`${order.deliverySlotId}|${day}`, (counts.get(`${order.deliverySlotId}|${day}`) ?? 0) + 1);
   }
 
@@ -129,9 +85,7 @@ export async function computeSlotUtilization(
   return slots.map((slot) => {
     const dayRows: SlotUtilization["days"] = [];
     for (let i = 0; i < totalDays; i++) {
-      const d = new Date(from);
-      d.setDate(d.getDate() + i);
-      const dayKey = isoDate(d);
+      const dayKey = addPickupDays(fromKey, i);
       const ov = overrideMap.get(`${slot.id}|${dayKey}`);
       dayRows.push({
         date: dayKey,
@@ -140,6 +94,8 @@ export async function computeSlotUtilization(
         isActive: ov?.isActive ?? slot.isActive,
         isOverridden: !!ov,
         note: ov?.note ?? null,
+        overrideCapacity: ov?.capacity ?? null,
+        overrideIsActive: ov?.isActive ?? null,
       });
     }
     return {

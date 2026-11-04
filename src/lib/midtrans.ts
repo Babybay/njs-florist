@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { PICKUP_HOLD_MINUTES } from "@/lib/pickup-schedule";
 
 export type MidtransStatus =
   | "settlement"
@@ -19,6 +20,7 @@ export type SnapItemDetail = {
 export type SnapTransactionInput = {
   orderNumber: string;
   total: number;
+  createdAt?: Date;
   items: SnapItemDetail[];
   customer?: {
     firstName?: string;
@@ -121,6 +123,13 @@ export async function createMidtransSnapTransaction(input: SnapTransactionInput)
       gross_amount: input.total,
     },
     item_details: input.items,
+    // Anchor expiry to order creation, rather than when a payment method is chosen.
+    expiry: {
+      start_time: (input.createdAt ?? new Date()).toISOString().replace("T", " ").slice(0, 19) + " +0000",
+      unit: "minutes",
+      duration: PICKUP_HOLD_MINUTES,
+    },
+    page_expiry: { unit: "minutes", duration: PICKUP_HOLD_MINUTES },
     customer_details: input.customer
       ? {
           first_name: input.customer.firstName,

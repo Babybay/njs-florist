@@ -78,6 +78,7 @@ export async function createPaymentForOrder(order: { id: string; orderNumber: st
   return createMidtransSnapTransaction({
     orderNumber: full.orderNumber,
     total: full.total,
+    createdAt: full.createdAt,
     items,
     customer: {
       firstName: full.recipientName.split(" ")[0],

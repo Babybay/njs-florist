@@ -110,7 +110,7 @@ export function Button({
   variant?: "primary" | "secondary" | "ghost" | "danger";
 }) {
   const base =
-    "inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50";
+      "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
     primary: "bg-stone-900 text-white hover:bg-stone-800",
     secondary: "border border-stone-200 bg-white text-stone-800 hover:bg-stone-100",
@@ -121,7 +121,7 @@ export function Button({
 }
 
 export function inputClass(extra = "") {
-  return `w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200/70 ${extra}`;
+  return `w-full min-h-11 rounded-md border border-stone-200 bg-white px-3 py-2 text-base text-stone-900 placeholder:text-stone-500 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-200/70 ${extra}`;
 }
 
 export function labelClass(extra = "") {

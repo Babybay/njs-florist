@@ -49,6 +49,7 @@ export function statusToneClass(status: string): string {
 
 export function formatPickupDate(date: Date): string {
   return new Intl.DateTimeFormat("id-ID", {
+    timeZone: "Asia/Makassar",
     weekday: "long",
     day: "numeric",
     month: "long",

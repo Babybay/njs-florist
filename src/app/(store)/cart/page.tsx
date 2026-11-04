@@ -27,7 +27,7 @@ export default async function CartPage() {
     return (
       <>
         <SiteHeader />
-        <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+        <main id="main-content" className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
           <PageTitle>Keranjang</PageTitle>
           <div className="mt-8">
             <EmptyState
@@ -65,7 +65,7 @@ export default async function CartPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <PageTitle>Keranjang</PageTitle>
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="grid gap-4">

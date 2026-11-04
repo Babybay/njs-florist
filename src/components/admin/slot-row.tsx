@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { inputClass, Button } from "@/components/admin/ui";
 import {
   toggleDeliverySlotAction,
   updateDeliverySlotAction,
@@ -15,12 +16,13 @@ type Slot = {
   isActive: boolean;
 };
 
-export function SlotRow({ slot, utilization }: { slot: Slot; utilization: { date: string; booked: number }[] }) {
+export function SlotRow({ slot, utilization, readOnly = false }: { slot: Slot; utilization: { date: string; booked: number; capacity?: number; isActive?: boolean; isOverridden?: boolean }[]; readOnly?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
 
   function runUpdate(formData: FormData) {
+    if (readOnly) return;
     setError(null);
     startTransition(async () => {
       try {
@@ -33,6 +35,7 @@ export function SlotRow({ slot, utilization }: { slot: Slot; utilization: { date
   }
 
   function runToggle() {
+    if (readOnly) return;
     setError(null);
     const fd = new FormData();
     fd.set("id", slot.id);
@@ -47,7 +50,7 @@ export function SlotRow({ slot, utilization }: { slot: Slot; utilization: { date
   }
 
   return (
-    <article className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+    <article className="rounded-lg border border-stone-200 bg-white p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -68,15 +71,15 @@ export function SlotRow({ slot, utilization }: { slot: Slot; utilization: { date
           <button
             type="button"
             onClick={() => setEditing(!editing)}
-            className="rounded-full border border-stone-300 px-3 py-1 text-xs font-semibold text-stone-700 hover:border-rose-300"
+            className="min-h-11 rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:border-rose-300"
           >
             {editing ? "Tutup" : "Edit"}
           </button>
           <button
             type="button"
-            disabled={pending}
+            disabled={pending || readOnly}
             onClick={runToggle}
-            className="rounded-full border border-stone-300 px-3 py-1 text-xs font-semibold text-stone-700 hover:border-rose-300 disabled:opacity-50"
+            className="min-h-11 rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:border-rose-300 disabled:opacity-50"
           >
             {slot.isActive ? "Nonaktifkan" : "Aktifkan"}
           </button>
@@ -85,23 +88,18 @@ export function SlotRow({ slot, utilization }: { slot: Slot; utilization: { date
 
       {editing ? (
         <form
+          aria-label={`Edit slot ${slot.label}`}
           action={(fd) => {
             fd.set("id", slot.id);
             runUpdate(fd);
           }}
-          className="mt-4 grid gap-3 rounded-md bg-stone-50 p-3 sm:grid-cols-[1.4fr_0.6fr_0.6fr_0.6fr_auto]"
+          className="mt-4 grid gap-3 rounded-md bg-stone-50 p-4 sm:grid-cols-2"
         >
-          <input name="label" defaultValue={slot.label} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-          <input name="startTime" defaultValue={slot.startTime} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-          <input name="endTime" defaultValue={slot.endTime} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-          <input name="capacity" type="number" min={1} defaultValue={slot.capacity} className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-rose-500" />
-          <button
-            type="submit"
-            disabled={pending}
-            className="rounded-full bg-rose-900 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-800 disabled:bg-stone-400"
-          >
-            {pending ? "..." : "Simpan"}
-          </button>
+          <label className="grid gap-1.5 text-sm">Nama slot<input name="label" required maxLength={60} defaultValue={slot.label} className={inputClass()} /></label>
+          <label className="grid gap-1.5 text-sm">Kapasitas per hari<input name="capacity" type="number" required min={1} max={500} step={1} defaultValue={slot.capacity} className={inputClass()} /></label>
+          <label className="grid gap-1.5 text-sm">Mulai (WITA)<input name="startTime" type="time" required defaultValue={slot.startTime} className={inputClass()} /></label>
+          <label className="grid gap-1.5 text-sm">Selesai (WITA)<input name="endTime" type="time" required defaultValue={slot.endTime} className={inputClass()} /></label>
+          <Button type="submit" disabled={pending || readOnly}>{pending ? "Menyimpan…" : "Simpan slot"}</Button>
         </form>
       ) : null}
 
@@ -111,22 +109,25 @@ export function SlotRow({ slot, utilization }: { slot: Slot; utilization: { date
         </p>
         <div className="grid grid-cols-7 gap-1 text-center text-xs">
           {utilization.map((day) => {
-            const pct = slot.capacity > 0 ? day.booked / slot.capacity : 0;
+            const capacity = day.capacity ?? slot.capacity;
+            const active = (day.isActive ?? slot.isActive) && capacity > 0;
+            const pct = capacity > 0 ? day.booked / capacity : 0;
             const fill =
-              pct >= 1
+              !active ? "bg-stone-100 text-stone-600" : pct >= 1
                 ? "bg-rose-200 text-rose-900"
                 : pct >= 0.66
                   ? "bg-amber-100 text-amber-900"
                   : "bg-emerald-50 text-emerald-800";
             const dayLabel = new Date(day.date).toLocaleDateString("id-ID", {
+              timeZone: "Asia/Makassar",
               day: "numeric",
               month: "short",
             });
             return (
-              <div key={day.date} className={`rounded ${fill} px-1 py-2`}>
+              <div key={day.date} title={`${dayLabel}: ${day.booked} pesanan, kapasitas ${capacity}${!active ? ", tutup" : ""}${day.isOverridden ? ", pengaturan khusus" : ""}`} className={`rounded ${fill} px-1 py-2`}>
                 <p className="font-semibold">{dayLabel}</p>
                 <p className="mt-0.5 text-[10px]">
-                  {day.booked}/{slot.capacity}
+                  {!active ? `Tutup · ${day.booked}` : `${day.booked}/${capacity}`}
                 </p>
               </div>
             );

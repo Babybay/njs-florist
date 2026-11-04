@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/server/services/auth.service";
 import { CATALOG_TAGS } from "@/server/services/catalog.service";
+import { ZodError } from "zod";
 import {
   createDeliverySlot,
   setSlotActive,
@@ -28,7 +29,8 @@ function parseForm(formData: FormData) {
 export async function createDeliverySlotAction(formData: FormData) {
   await requireAdmin();
   const { storeId, label, startTime, endTime, capacity } = parseForm(formData);
-  await createDeliverySlot({ storeId, label, startTime, endTime, capacity });
+  try { await createDeliverySlot({ storeId, label, startTime, endTime, capacity }); }
+  catch (error) { if (error instanceof ZodError) throw new Error(error.issues[0]?.message ?? "Periksa detail slot."); throw error; }
   invalidateSlots();
   revalidatePath("/admin/delivery");
 }
@@ -37,7 +39,8 @@ export async function updateDeliverySlotAction(formData: FormData) {
   await requireAdmin();
   const { id, label, startTime, endTime, capacity } = parseForm(formData);
   if (!id) throw new Error("Slot id missing.");
-  await updateDeliverySlot({ id, label, startTime, endTime, capacity });
+  try { await updateDeliverySlot({ id, label, startTime, endTime, capacity }); }
+  catch (error) { if (error instanceof ZodError) throw new Error(error.issues[0]?.message ?? "Periksa detail slot."); throw error; }
   invalidateSlots();
   revalidatePath("/admin/delivery");
 }

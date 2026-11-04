@@ -294,6 +294,7 @@ model Order {
   @@index([status, createdAt])
   @@index([createdAt])
   @@index([storeId, status])
+  @@index([storeId, deliveryDate, deliverySlotId])
 }
 
 model OrderStatusHistory {

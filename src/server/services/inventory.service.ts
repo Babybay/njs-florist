@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import {
   inventoryItemCreateSchema,
   inventoryItemUpdateSchema,
+  stockMovementInputSchema,
 } from "@/server/validations/inventory.validation";
 import { sendLowStockAlert } from "@/server/services/notification.service";
 
@@ -30,6 +31,7 @@ export type StockMovementInput = {
  *   - RESERVED/RELEASED: bookkeeping only — does NOT change currentQty (reservations are tracked on StockReservation).
  */
 export async function applyStockMovement(input: StockMovementInput, client: AnyClient = db) {
+  input = stockMovementInputSchema.parse(input);
   const run = async (tx: AnyClient) => {
     const item = await tx.inventoryItem.findUnique({
       where: { id: input.inventoryItemId },

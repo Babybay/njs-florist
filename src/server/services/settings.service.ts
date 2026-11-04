@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { isUiPreview } from "@/lib/ui-preview";
+import { settingUpdateSchema } from "@/server/validations/settings.validation";
 
 export const SETTING_KEYS = {
   DELIVERY_FEE: "delivery_fee",
@@ -86,10 +87,7 @@ export async function getAllSettings(): Promise<Record<string, string>> {
   return readAllSettings();
 }
 
-const updateSchema = z.object({
-  key: z.string().min(1).max(64),
-  value: z.string().max(1000),
-});
+const updateSchema = settingUpdateSchema;
 
 export async function setSetting(input: unknown) {
   const { key, value } = updateSchema.parse(input);

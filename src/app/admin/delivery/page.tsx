@@ -11,6 +11,8 @@ import {
 import { listUpcomingOverrides } from "@/server/services/slot-override.service";
 import { getCalendarFeedUrl } from "@/server/services/calendar-feed.service";
 import { listStores } from "@/server/services/store.service";
+import { pickupDateKey, parsePickupDate } from "@/lib/pickup-schedule";
+import Link from "next/link";
 
 export const metadata = {
   title: "Admin Slot Pickup",
@@ -24,25 +26,26 @@ const MONTH_LABEL = [
 ];
 
 function parseMonthKey(raw: string | undefined, today: Date) {
-  const fallback = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+  const fallback = pickupDateKey(today).slice(0, 7);
   if (!raw || !/^\d{4}-\d{2}$/.test(raw)) return fallback;
   const [y, m] = raw.split("-").map(Number);
-  if (m < 1 || m > 12) return fallback;
+  if (m < 1 || m > 12 || y < 2000 || y > 9998) return fallback;
   return raw;
 }
 
 export default async function AdminDeliveryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{ month?: string; store?: string }>;
 }) {
   const sp = await searchParams;
   const today = new Date();
-  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const todayIso = pickupDateKey(today);
   const monthKey = parseMonthKey(sp.month, today);
   const [y, m] = monthKey.split("-").map(Number);
-  const monthStart = new Date(y, m - 1, 1);
-  const monthEnd = new Date(y, m, 0); // last day of month (day 0 of next month)
+  const monthStart = parsePickupDate(`${monthKey}-01`);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const monthEnd = parsePickupDate(`${monthKey}-${lastDay}`);
 
   const [slots, monthUtilization, fortnightUtilization, upcomingOverrides, calendarFeed, stores] = await Promise.all([
     listAllDeliverySlots(),
@@ -57,6 +60,7 @@ export default async function AdminDeliveryPage({
 
   const slotsForCalendar = slots.map((s) => ({
     id: s.id,
+    storeId: s.storeId,
     label: s.label,
     startTime: s.startTime,
     endTime: s.endTime,
@@ -65,6 +69,9 @@ export default async function AdminDeliveryPage({
   }));
 
   const monthLabel = `${MONTH_LABEL[m - 1]} ${y}`;
+  const selectedStore = stores.find((store) => store.id === sp.store) ?? stores[0];
+  const calendarSlots = slotsForCalendar.filter((slot) => slot.storeId === selectedStore?.id);
+  const calendarSlotIds = new Set(calendarSlots.map((slot) => slot.id));
 
   return (
     <>
@@ -79,11 +86,17 @@ export default async function AdminDeliveryPage({
         description="Klik tanggal untuk override kapasitas atau tutup slot. Titik kuning = ada override."
         className="mb-4"
       >
+        <nav aria-label="Toko untuk kalender pickup" className="mb-4 flex flex-wrap gap-2">
+          {stores.map((store) => <Link key={store.id} href={`/admin/delivery?month=${monthKey}&store=${encodeURIComponent(store.id)}`} scroll={false} aria-current={selectedStore?.id === store.id ? "page" : undefined} className={`inline-flex min-h-11 items-center rounded-md border px-4 py-2 text-sm ${selectedStore?.id === store.id ? "border-rose-800 bg-rose-50 text-rose-900" : "border-stone-200 text-stone-700"}`}>{store.name}</Link>)}
+        </nav>
+        <p className="mb-4 text-sm text-stone-600">Kalender dan override untuk {selectedStore?.name ?? "toko yang dipilih"}. Termasuk slot yang sedang menunggu pembayaran (maksimal 15 menit).</p>
         <SlotCalendar
-          slots={slotsForCalendar}
-          utilization={monthUtilization}
+          key={`${selectedStore?.id}-${monthKey}`}
+          slots={calendarSlots}
+          utilization={monthUtilization.filter((row) => calendarSlotIds.has(row.slotId))}
           monthKey={monthKey}
           todayIso={todayIso}
+          storeId={selectedStore?.id}
         />
       </CardSection>
 
@@ -94,7 +107,7 @@ export default async function AdminDeliveryPage({
         description="Daftar tanggal khusus yang sudah diatur (3 bulan ke depan)."
         className="mb-4"
       >
-        {upcomingOverrides.length === 0 ? (
+        {upcomingOverrides.filter((ov) => ov.slot.storeId === selectedStore?.id).length === 0 ? (
           <EmptyState
             icon="📅"
             title="Belum ada override"
@@ -102,8 +115,9 @@ export default async function AdminDeliveryPage({
           />
         ) : (
           <ul className="grid gap-2">
-            {upcomingOverrides.map((ov) => {
+            {upcomingOverrides.filter((ov) => ov.slot.storeId === selectedStore?.id).map((ov) => {
               const dateLabel = new Date(ov.date).toLocaleDateString("id-ID", {
+                timeZone: "Asia/Makassar",
                 weekday: "long",
                 day: "numeric",
                 month: "long",
@@ -132,8 +146,8 @@ export default async function AdminDeliveryPage({
 
       <CardSection title="Slot harian (template berulang)" description="Slot yang berlaku setiap hari (kecuali ditimpa override).">
         <div className="grid gap-3">
-          <SlotCreateForm stores={stores} />
-          {stores.map((store) => {
+          <SlotCreateForm key={selectedStore?.id} stores={stores} defaultStoreId={selectedStore?.id} />
+          {stores.filter((store) => store.id === selectedStore?.id).map((store) => {
             const storeSlots = slots.filter((s) => s.storeId === store.id);
             if (storeSlots.length === 0) return null;
             return (

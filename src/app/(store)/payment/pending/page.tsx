@@ -26,7 +26,7 @@ export default async function PaymentPendingPage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <PageKicker>Pembayaran</PageKicker>
         <PageTitle>Selesaikan pembayaran</PageTitle>
         {order ? (

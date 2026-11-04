@@ -1,7 +1,8 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
-import type { OrderStatus } from "@prisma/client";
+import type { OrderStatus, Prisma } from "@prisma/client";
+import { pickupDateKey, pickupDayBounds } from "@/lib/pickup-schedule";
 
 const PAID_STATUSES: OrderStatus[] = [
   "PAID",
@@ -65,3 +66,19 @@ export const getPaidRevenueTotal = unstable_cache(
 );
 
 // Low stock lives in inventory.service.ts (listLowStockItems) — single source.
+
+/** Full-day counts are independent of the six-row recent orders list. */
+export async function loadTodayOrderSummary(client: Pick<Prisma.TransactionClient, "order"> = db, now = new Date()) {
+  const { start, end } = pickupDayBounds(pickupDateKey(now));
+  const [created, pickups] = await Promise.all([
+    client.order.groupBy({ by: ["status"], where: { createdAt: { gte: start, lt: end } }, _count: { _all: true } }),
+    client.order.groupBy({ by: ["status"], where: { deliveryDate: { gte: start, lt: end }, status: { in: ["PAID", "PREPARING", "READY_FOR_DELIVERY", "OUT_FOR_DELIVERY"] } }, _count: { _all: true } }),
+  ]);
+  return {
+    created: created.reduce((sum, row) => sum + row._count._all, 0),
+    pendingPayment: created.find((row) => row.status === "PENDING_PAYMENT")?._count._all ?? 0,
+    pickups: pickups.reduce((sum, row) => sum + row._count._all, 0),
+    ready: pickups.find((row) => row.status === "READY_FOR_DELIVERY")?._count._all ?? 0,
+  };
+}
+export const getTodayOrderSummary = cache(() => loadTodayOrderSummary());

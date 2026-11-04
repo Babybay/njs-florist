@@ -16,8 +16,11 @@ import {
   getActiveProductCount,
   getPaidRevenueTotal,
   getRecentOrders,
+  getTodayOrderSummary,
 } from "@/server/services/dashboard.service";
 import { listLowStockItems } from "@/server/services/inventory.service";
+import { pickupDateKey } from "@/lib/pickup-schedule";
+import { PickupTodaySummary } from "@/components/admin/pickup-today-summary";
 
 export const metadata = {
   title: "Admin",
@@ -49,6 +52,7 @@ export default function AdminDashboardPage() {
         </Suspense>
       </div>
 
+      <Suspense fallback={<p className="mt-6 text-sm text-stone-600">Memuat antrean pickup hari ini…</p>}><TodayPickups /></Suspense>
       <div className="mt-6 grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <Suspense fallback={<CardSectionSkeleton title="Pesanan terbaru" rows={5} />}>
           <RecentOrders />
@@ -103,14 +107,13 @@ async function ProductsStat() {
 }
 
 async function OrdersStat() {
-  const recent = await getRecentOrders();
-  const pendingPayment = recent.filter((o) => o.status === "PENDING_PAYMENT").length;
+  const summary = await getTodayOrderSummary();
   return (
     <Stat
-      label="Pesanan baru"
-      value={recent.length}
-      hint={pendingPayment ? `${pendingPayment} pending bayar` : undefined}
-      href="/admin/orders"
+      label="Pesanan masuk hari ini"
+      value={summary.created}
+      hint={`${summary.pickups} pickup hari ini · ${summary.ready} siap diambil · ${summary.pendingPayment} menunggu bayar`}
+      href={`/admin/orders?from=${pickupDateKey()}&to=${pickupDateKey()}`}
     />
   );
 }
@@ -118,6 +121,11 @@ async function OrdersStat() {
 async function RevenueStat() {
   const total = await getPaidRevenueTotal();
   return <Stat label="Revenue terbayar" value={formatIDR(total)} href="/admin/payments" />;
+}
+
+async function TodayPickups() {
+  const summary = await getTodayOrderSummary();
+  return <PickupTodaySummary date={pickupDateKey()} pickups={summary.pickups} ready={summary.ready} />;
 }
 
 async function LowStockStat() {

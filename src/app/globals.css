@@ -2,6 +2,8 @@
  * critique: removed client-only homepage motion and its loading curtain; retained the store's real catalogue and managed imagery. */
 @import "tailwindcss";
 @import "./storefront.css";
+@import "./checkout.css";
+@import "./admin.css";
 
 /* ─── Romantic editorial florist palette
    Dusty rose dominant, warm cream ground, deep rose for CTAs/bands.

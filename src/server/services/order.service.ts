@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { OrderStatus } from "@/types/order";
+import { pickupDayBounds } from "@/lib/pickup-schedule";
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   return db.order.update({
@@ -23,11 +24,13 @@ export async function listOrders(filter?: {
   fromDate?: Date;
   toDate?: Date;
   storeId?: string;
+  pickupDate?: string;
 }) {
   const where: Record<string, unknown> = {};
   if (filter?.statuses && filter.statuses.length) where.status = { in: filter.statuses };
   if (filter?.userId) where.userId = filter.userId;
   if (filter?.storeId) where.storeId = filter.storeId;
+  if (filter?.pickupDate) { const { start, end } = pickupDayBounds(filter.pickupDate); where.deliveryDate = { gte: start, lt: end }; }
   if (filter?.q) {
     where.OR = [
       { orderNumber: { contains: filter.q, mode: "insensitive" } },

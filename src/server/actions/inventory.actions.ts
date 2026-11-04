@@ -8,6 +8,7 @@ import {
   updateInventoryItem,
 } from "@/server/services/inventory.service";
 import { calculateVariantAvailability } from "@/server/services/stock.service";
+import { stockMovementInputSchema } from "@/server/validations/inventory.validation";
 
 export async function calculateVariantAvailabilityAction(variantId: string) {
   return calculateVariantAvailability(variantId);
@@ -53,14 +54,16 @@ export async function applyStockMovementAction(formData: FormData) {
   const session = await requireAdmin();
   const inventoryItemId = String(formData.get("inventoryItemId") ?? "");
   const type = String(formData.get("type") ?? "") as "IN" | "OUT" | "ADJUSTMENT";
-  const quantity = num(formData.get("quantity")) ?? 0;
+  const quantity = num(formData.get("quantity"));
   const reason = trimOrUndefined(formData.get("reason"));
-  if (!inventoryItemId || !["IN", "OUT", "ADJUSTMENT"].includes(type)) return;
+  if (!inventoryItemId || !["IN", "OUT", "ADJUSTMENT"].includes(type)) throw new Error("Pilih bahan dan jenis perubahan stok yang valid.");
+  const validation = stockMovementInputSchema.safeParse({ inventoryItemId, type, quantity, reason });
+  if (!validation.success) throw new Error(validation.error.issues[0]?.message ?? "Periksa jumlah stok.");
 
   await applyStockMovement({
     inventoryItemId,
     type,
-    quantity,
+    quantity: validation.data.quantity,
     reason,
     createdById: session.id,
   });
